@@ -11,8 +11,6 @@ public class BusinessSystemsSecurityApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(BusinessSystemsSecurityApplication.class, args);
-
-        System.out.println("Radi nesto!");
     }
 
     @Bean
