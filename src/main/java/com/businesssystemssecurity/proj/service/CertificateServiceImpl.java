@@ -8,6 +8,7 @@ import com.businesssystemssecurity.proj.exception.PKIMalfunctionException;
 import com.businesssystemssecurity.proj.repository.CertificateRepository;
 import com.businesssystemssecurity.proj.storage.CertificateStorage;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import sun.security.tools.keytool.CertAndKeyGen;
 import sun.security.x509.*;
 
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Optional;
 
+@Service
 public class CertificateServiceImpl implements CertificateService {
 
     @Autowired
