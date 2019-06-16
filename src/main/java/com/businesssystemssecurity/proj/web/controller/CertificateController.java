@@ -21,7 +21,9 @@ public class CertificateController {
     private CertificateService certificateService;
 
 
-    @GetMapping
+    @RequestMapping(value = "",
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('admin')")
     public ResponseEntity<ArrayList<Certificate>> getAll() {
         return new ResponseEntity<>(
@@ -30,7 +32,9 @@ public class CertificateController {
     }
 
 
-    @PostMapping(produces = MediaType.TEXT_PLAIN_VALUE)
+    @RequestMapping(value = "",
+            method = RequestMethod.POST,
+            produces = MediaType.TEXT_PLAIN_VALUE)
     @PreAuthorize("hasAuthority('admin')")
     public ResponseEntity<String> generate(@RequestBody CertificateRequestDTO request) {
 

@@ -8,6 +8,7 @@ import com.businesssystemssecurity.proj.exception.PKIMalfunctionException;
 import com.businesssystemssecurity.proj.repository.CertificateRepository;
 import com.businesssystemssecurity.proj.storage.CertificateStorage;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import sun.security.tools.keytool.CertAndKeyGen;
 import sun.security.x509.*;
@@ -30,6 +31,15 @@ public class CertificateServiceImpl implements CertificateService {
 
     @Autowired
     private CertificateRepository certificateRepository;
+
+    @Value( "${pki.key-alias}" )
+    private String keyStoreAliasName;
+
+    @Value( "${pki.key-store-password}" )
+    private char[] keyStorePassword;
+
+    @Value( "${pki.trust-store-password}" )
+    private char[] trustStorePassword;
 
     @Override
     @Transactional
@@ -60,11 +70,10 @@ public class CertificateServiceImpl implements CertificateService {
             c.setSubject(certificate.getSubjectDN().getName());
             c.setCA(true);
             c.setCertFilePath(paths[0]);
-            c.setTrustFilePath(paths[1]);
+            c.setKeyStoreFilePath(paths[1]);
             c.setActive(true);
 
             Certificate saved = certificateRepository.save(c);
-            saved.setIssuerId(saved.getId());
             certificateRepository.save(saved);
 
         } catch (IOException |
@@ -83,7 +92,10 @@ public class CertificateServiceImpl implements CertificateService {
         Optional<Certificate> opt = certificateRepository.findBySubject(issuer);
         Certificate issuerCertificate = opt.orElseThrow(() -> new EntityNotFoundException(Certificate.class, "issuer", issuer));
 
-        CertificatesAndKeyHolder ckh = certificateStorage.loadChainAndKey(issuerCertificate.getTrustFilePath());
+        CertificatesAndKeyHolder ckh = certificateStorage.loadPrivateKeyAndChain(
+                issuerCertificate.getKeyStoreFilePath(),
+                this.keyStoreAliasName,
+                this.keyStorePassword);
 
         X500Principal x500Subject = new X500Principal(subject);
         Principal issuerName = ckh.getChain()[0].getSubjectDN();
@@ -91,8 +103,6 @@ public class CertificateServiceImpl implements CertificateService {
         CertAndKeyGen sub = generateKeyPair();
 
         try {
-
-
             X509Certificate certificate = sub.getSelfCertificate(
                     X500Name.asX500Name(x500Subject),
                     (long) 365 * 24 * 3600);
@@ -121,12 +131,11 @@ public class CertificateServiceImpl implements CertificateService {
             newCertificate.setIssuer(outCertificate.getIssuerDN().getName());
             newCertificate.setSubject(outCertificate.getSubjectDN().getName());
             newCertificate.setCertFilePath(paths[0]);
-            newCertificate.setTrustFilePath(paths[1]);
+            newCertificate.setKeyStoreFilePath(paths[1]);
+            newCertificate.setTrustStoreFilePath(paths[2]);
             newCertificate.setCA(certificateType == CertificateType.INTERMEDIATE);
-            newCertificate.setIssuerId(issuerCertificate.getId());
 
             certificateRepository.save(newCertificate);
-
 
         } catch (IOException |
                 CertificateException |
@@ -155,4 +164,6 @@ public class CertificateServiceImpl implements CertificateService {
             throw new PKIMalfunctionException("Error while generating key pair.");
         }
     }
+
+
 }

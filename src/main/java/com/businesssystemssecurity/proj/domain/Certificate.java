@@ -1,6 +1,7 @@
 package com.businesssystemssecurity.proj.domain;
 
 import javax.persistence.*;
+import java.util.List;
 
 @Entity
 @Table(name = "certificate")
@@ -11,8 +12,11 @@ public class Certificate {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
-    @Column(name = "issuer_id")
-    private long issuerId;
+    @ManyToOne(fetch=FetchType.LAZY, cascade={CascadeType.PERSIST, CascadeType.MERGE})
+    private Certificate parent;
+
+    @OneToMany(mappedBy="parent", fetch=FetchType.LAZY, cascade={CascadeType.PERSIST, CascadeType.MERGE})
+    private List<Certificate> children;
 
     @Column(name="serial_number", nullable = false, unique = true)
     private String serialNumber;
@@ -29,8 +33,11 @@ public class Certificate {
     @Column(name="cert_file_path")
     private String certFilePath;
 
-    @Column(name="trust_file_path")
-    private String trustFilePath;
+    @Column(name="key_store_file_path")
+    private String keyStoreFilePath;
+
+    @Column(name="trust_store_file_path")
+    private String trustStoreFilePath;
 
     @Column(name="active", nullable = false)
     private Boolean active;
@@ -44,12 +51,20 @@ public class Certificate {
         this.id = id;
     }
 
-    public long getIssuerId() {
-        return issuerId;
+    public Certificate getParent() {
+        return parent;
     }
 
-    public void setIssuerId(long issuerId) {
-        this.issuerId = issuerId;
+    public void setParent(Certificate parent) {
+        this.parent = parent;
+    }
+
+    public List<Certificate> getChildren() {
+        return children;
+    }
+
+    public void setChildren(List<Certificate> children) {
+        this.children = children;
     }
 
     public String getSerialNumber() {
@@ -92,12 +107,20 @@ public class Certificate {
         this.certFilePath = certFilePath;
     }
 
-    public String getTrustFilePath() {
-        return trustFilePath;
+    public String getKeyStoreFilePath() {
+        return keyStoreFilePath;
     }
 
-    public void setTrustFilePath(String trustFilePath) {
-        this.trustFilePath = trustFilePath;
+    public void setKeyStoreFilePath(String keyStoreFilePath) {
+        this.keyStoreFilePath = keyStoreFilePath;
+    }
+
+    public String getTrustStoreFilePath() {
+        return trustStoreFilePath;
+    }
+
+    public void setTrustStoreFilePath(String trustStoreFilePath) {
+        this.trustStoreFilePath = trustStoreFilePath;
     }
 
     public Boolean getActive() {

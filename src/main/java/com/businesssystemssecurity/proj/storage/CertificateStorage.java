@@ -15,16 +15,18 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 
 @Component
 public class CertificateStorage {
 
 
-    @Value( "${keystore.alias-name}" )
+    @Value( "${pki.key-alias}" )
     private String keyStoreAliasName;
 
-    @Value( "${keystore.password}" )
+    @Value( "${pki.key-store-password}" )
     private char[] keyStorePassword;
 
     public String[] storeCertificate(CertificatesAndKeyHolder certificatesAndKeyHolder,
@@ -35,47 +37,40 @@ public class CertificateStorage {
 
         try {
             String certFileName = "cert_" + leafCertificate.getSerialNumber() + ".cer";
-            String trustFileName = "trust_" + leafCertificate.getSerialNumber() + ".jks";
+            String keyStoreFileName = "keystore_" + leafCertificate.getSerialNumber() + ".jks";
+            String trustStoreFileName = "truststore_" + leafCertificate.getSerialNumber() + ".jks";
 
             String certFilePath = Paths.get(storagePath.toString(), certFileName).toString();
-            String trustFilePath = Paths.get(storagePath.toString(), trustFileName).toString();
+            String keyStoreFilePath = Paths.get(storagePath.toString(), keyStoreFileName).toString();
+            String trustStoreFilePath = Paths.get(storagePath.toString(), trustStoreFileName).toString();
 
             FileOutputStream out = new FileOutputStream(certFilePath);
             out.write(leafCertificate.getEncoded());
             out.close();
 
-            storePrivateKey(certificatesAndKeyHolder.getPrivateKey(),
+            // Store private key of certificate and certificate chain to keystore
+            storePrivateKeyAndChain(
+                    certificatesAndKeyHolder.getPrivateKey(),
                     certificatesAndKeyHolder.getChain(),
-                    trustFilePath
+                    keyStoreFilePath,
+                    leafCertificate.getSerialNumber().toString(),
+                    this.keyStorePassword
             );
 
-            return new String[]{certFilePath, trustFilePath};
+            // Store certificate to new  trust store
+            createTrustStorage(
+                    leafCertificate,
+                    trustStoreFilePath,
+                    leafCertificate.getSerialNumber().toString(),
+                    this.keyStorePassword
+
+            );
+
+            return new String[]{certFilePath, keyStoreFilePath, trustStoreFilePath};
 
         } catch (Exception e) {
             throw new PKIMalfunctionException("Error while storing root certificate.");
         }
-    }
-
-    public CertificatesAndKeyHolder loadChainAndKey(String trustFilePath)
-    {
-        try {
-            KeyStore keyStore = KeyStore.getInstance("jks");
-
-            keyStore.load(new FileInputStream(trustFilePath), this.keyStorePassword);
-            Key key = keyStore.getKey(this.keyStoreAliasName, this.keyStorePassword);
-
-            if (key instanceof PrivateKey) {
-                Certificate[] certificates = keyStore.getCertificateChain(this.keyStoreAliasName);
-                return new CertificatesAndKeyHolder((X509Certificate[])certificates, (PrivateKey)key);
-            } else {
-                throw new PKIMalfunctionException("Error while loading certificate chain.");
-            }
-
-        } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException e) {
-            e.printStackTrace();
-        }
-
-        return null;
     }
 
     public X509Certificate loadCertificate(String certificateFilePath) {
@@ -92,16 +87,18 @@ public class CertificateStorage {
         }
     }
 
-    private void storePrivateKey(
-                                 Key key,
-                                 X509Certificate[] certificateChain,
-                                 String keystorePath)
+    private void storePrivateKeyAndChain (
+            Key key,
+            X509Certificate[] certificateChain,
+            String storePath,
+            String alias,
+            char[] password)
     {
         try {
             KeyStore keyStore = KeyStore.getInstance("jks");
             keyStore.load(null, null);
-            keyStore.setKeyEntry(this.keyStoreAliasName, key, this.keyStorePassword, certificateChain);
-            keyStore.store(new FileOutputStream(keystorePath), this.keyStorePassword);
+            keyStore.setKeyEntry(alias, key, password, certificateChain);
+            keyStore.store(new FileOutputStream(storePath), password);
 
         } catch (KeyStoreException |
                 IOException |
@@ -109,6 +106,55 @@ public class CertificateStorage {
                 CertificateException e) {
             throw new PKIMalfunctionException("Error while storing private key.");
         }
+    }
 
+    private void createTrustStorage (
+            X509Certificate certificate,
+            String storePath,
+            String alias,
+            char[] password)
+    {
+        try {
+            KeyStore keyStore = KeyStore.getInstance("jks");
+            keyStore.load(null, null);
+            keyStore.setCertificateEntry(alias, certificate);
+            keyStore.store(new FileOutputStream(storePath), password);
+
+        } catch (KeyStoreException |
+                IOException |
+                NoSuchAlgorithmException |
+                CertificateException e) {
+            throw new PKIMalfunctionException("Error while storing certificate to trust store.");
+        }
+    }
+
+    public CertificatesAndKeyHolder loadPrivateKeyAndChain(
+            String storePath,
+            String alias,
+            char[] password)
+    {
+        try {
+            KeyStore keyStore = KeyStore.getInstance("jks");
+
+            keyStore.load(new FileInputStream(storePath), password);
+            Key key = keyStore.getKey(alias, password);
+
+            if (key instanceof PrivateKey) {
+                Certificate[] certificates = keyStore.getCertificateChain(alias);
+
+                /* Convert to X509Certificate[]*/
+                ArrayList<Certificate> clist = new ArrayList<>(Arrays.asList(certificates));
+                X509Certificate[] x509Certificates = clist.toArray(new X509Certificate[clist.size()]);
+
+                return new CertificatesAndKeyHolder(x509Certificates, (PrivateKey)key);
+            } else {
+                throw new PKIMalfunctionException("Error while loading certificate chain.");
+            }
+
+        } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 }

@@ -12,7 +12,7 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
 
     Optional<Certificate> findBySubject(String subject);
 
-    ArrayList<Certificate> findAllByIssuer(String issuer);
+    Optional<Certificate>findBySerialNumber(String serialNumber);
 
-    ArrayList<Certificate> findAllByIssuerId(Long issuerId);
+    ArrayList<Certificate> findAllByIssuer(String issuer);
 }
