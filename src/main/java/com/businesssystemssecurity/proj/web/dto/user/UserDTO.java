@@ -8,16 +8,13 @@ import java.util.stream.Collectors;
 
 public class UserDTO {
     private Long id;
-    private Boolean blocked;
     private String email;
     private String firstName;
     private String lastName;
     private Set<AuthorityDTO> userAuthorities;
-    private Long documentationId;
 
-    public UserDTO(Long id, Boolean blocked, String email, String firstName, String lastName) {
+    public UserDTO(Long id, String email, String firstName, String lastName) {
         this.id = id;
-        this.blocked = blocked;
         this.email = email;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -40,14 +37,6 @@ public class UserDTO {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public Boolean getBlocked() {
-        return blocked;
-    }
-
-    public void setBlocked(Boolean blocked) {
-        this.blocked = blocked;
     }
 
     public String getEmail() {
@@ -82,11 +71,4 @@ public class UserDTO {
         this.userAuthorities = userAuthorities;
     }
 
-    public Long getDocumentationId() {
-        return documentationId;
-    }
-
-    public void setDocumentationId(Long documentationId) {
-        this.documentationId = documentationId;
-    }
 }

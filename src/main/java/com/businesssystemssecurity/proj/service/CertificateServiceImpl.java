@@ -7,6 +7,7 @@ import com.businesssystemssecurity.proj.exception.EntityNotFoundException;
 import com.businesssystemssecurity.proj.exception.PKIMalfunctionException;
 import com.businesssystemssecurity.proj.repository.CertificateRepository;
 import com.businesssystemssecurity.proj.storage.CertificateStorage;
+import com.businesssystemssecurity.proj.web.dto.tree.TreeItem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -43,7 +44,7 @@ public class CertificateServiceImpl implements CertificateService {
 
     @Override
     @Transactional
-    public void createRootCertificate(String subject) {
+    public Certificate createRootCertificate(String subject) {
         CertAndKeyGen gen = generateKeyPair();
         CertificateExtensions exts = new CertificateExtensions();
 
@@ -68,13 +69,15 @@ public class CertificateServiceImpl implements CertificateService {
             c.setSerialNumber(certificate.getSerialNumber().toString());
             c.setIssuer(certificate.getIssuerDN().getName());
             c.setSubject(certificate.getSubjectDN().getName());
-            c.setCA(true);
             c.setCertFilePath(paths[0]);
             c.setKeyStoreFilePath(paths[1]);
+            c.setTrustStoreFilePath(paths[2]);
+            c.setCA(true);
             c.setActive(true);
 
-            Certificate saved = certificateRepository.save(c);
-            certificateRepository.save(saved);
+            certificateRepository.save(c);
+            return c;
+
 
         } catch (IOException |
                 CertificateException |
@@ -88,13 +91,13 @@ public class CertificateServiceImpl implements CertificateService {
 
     @Override
     @Transactional
-    public void createSignedCertificate(String subject, String issuer, CertificateType certificateType) {
+    public Certificate createSignedCertificate(String subject, String issuer, CertificateType certificateType) {
         Optional<Certificate> opt = certificateRepository.findBySubject(issuer);
         Certificate issuerCertificate = opt.orElseThrow(() -> new EntityNotFoundException(Certificate.class, "issuer", issuer));
 
         CertificatesAndKeyHolder ckh = certificateStorage.loadPrivateKeyAndChain(
                 issuerCertificate.getKeyStoreFilePath(),
-                this.keyStoreAliasName,
+                issuerCertificate.getSerialNumber().toString(),
                 this.keyStorePassword);
 
         X500Principal x500Subject = new X500Principal(subject);
@@ -136,6 +139,7 @@ public class CertificateServiceImpl implements CertificateService {
             newCertificate.setCA(certificateType == CertificateType.INTERMEDIATE);
 
             certificateRepository.save(newCertificate);
+            return newCertificate;
 
         } catch (IOException |
                 CertificateException |
@@ -145,11 +149,6 @@ public class CertificateServiceImpl implements CertificateService {
                 NoSuchProviderException e) {
             throw new PKIMalfunctionException("Error while creating new root certificate");
         }
-    }
-
-    @Override
-    public ArrayList<Certificate> findAll() {
-        return (ArrayList<Certificate>) certificateRepository.findAll();
     }
 
     private CertAndKeyGen generateKeyPair() {
@@ -165,5 +164,47 @@ public class CertificateServiceImpl implements CertificateService {
         }
     }
 
+    @Override
+    public Certificate findById(int id) {
+        Optional<Certificate> opt = this.certificateRepository.findById((long) id);
+        return opt.orElseThrow(() -> new EntityNotFoundException(Certificate.class, "id", Long.toString(id)));    }
+
+
+    @Override
+    public ArrayList<Certificate> findAll() {
+        return (ArrayList<Certificate>) certificateRepository.findAll();
+    }
+
+    @Override
+    public ArrayList<TreeItem> getTree() {
+        ArrayList<Certificate> certs = this.findAll();
+        ArrayList<TreeItem> forest = new ArrayList<>();
+
+        for (Certificate c : certs) {
+            if (c.getSubject().equals(c.getIssuer())) {
+                TreeItem ti = new TreeItem(c.getId(), c.getSubject());
+                forest.add(ti);
+            } else {
+                this.addToForest(c, forest);
+            }
+        }
+
+        return forest;
+    }
+
+    private void addToForest(Certificate cert,  ArrayList<TreeItem> forest) {
+        if (forest.size() == 0) {
+            return;
+        }
+
+        for (TreeItem ti : forest)  {
+            if (ti.getName().equals(cert.getIssuer())) {
+                TreeItem treeToAdd = new TreeItem(cert.getId(), cert.getSubject());
+                ti.getChildren().add(treeToAdd);
+            } else {
+                addToForest(cert, ti.getChildren());
+            }
+        }
+    }
 
 }
