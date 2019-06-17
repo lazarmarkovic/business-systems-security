@@ -74,6 +74,7 @@ public class CertificateServiceImpl implements CertificateService {
             c.setTrustStoreFilePath(paths[2]);
             c.setCA(true);
             c.setActive(true);
+            c.setType(CertificateType.ROOT.toString());
 
             certificateRepository.save(c);
             return c;
@@ -94,6 +95,16 @@ public class CertificateServiceImpl implements CertificateService {
     public Certificate createSignedCertificate(String subject, String issuer, CertificateType certificateType) {
         Optional<Certificate> opt = certificateRepository.findBySubject(issuer);
         Certificate issuerCertificate = opt.orElseThrow(() -> new EntityNotFoundException(Certificate.class, "issuer", issuer));
+
+        Certificate c = certificateRepository.findBySerialNumber(issuerCertificate.getSerialNumber()).get();
+        /* Check if can extend chain */
+        if (c.getType().equals(CertificateType.ROOT.toString()) && certificateType == CertificateType.USER) {
+            throw new PKIMalfunctionException("USER cert cannot be directly issued by ROOT cert.");
+        }
+
+        if (c.getType().equals(CertificateType.USER.toString())) {
+            throw new PKIMalfunctionException("Cert cannot be issued by USER.");
+        }
 
         CertificatesAndKeyHolder ckh = certificateStorage.loadPrivateKeyAndChain(
                 issuerCertificate.getKeyStoreFilePath(),
@@ -137,6 +148,7 @@ public class CertificateServiceImpl implements CertificateService {
             newCertificate.setKeyStoreFilePath(paths[1]);
             newCertificate.setTrustStoreFilePath(paths[2]);
             newCertificate.setCA(certificateType == CertificateType.INTERMEDIATE);
+            newCertificate.setType(certificateType.toString());
 
             certificateRepository.save(newCertificate);
             return newCertificate;

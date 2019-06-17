@@ -12,14 +12,11 @@ public class Certificate {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
-    @ManyToOne(fetch=FetchType.LAZY, cascade={CascadeType.PERSIST, CascadeType.MERGE})
-    private Certificate parent;
-
-    @OneToMany(mappedBy="parent", fetch=FetchType.LAZY, cascade={CascadeType.PERSIST, CascadeType.MERGE})
-    private List<Certificate> children;
-
     @Column(name="serial_number", nullable = false, unique = true)
     private String serialNumber;
+
+    @Column(name="type", nullable = true, unique = true)
+    private String type;
 
     @Column(name="issuer", nullable = false)
     private String issuer;
@@ -51,28 +48,20 @@ public class Certificate {
         this.id = id;
     }
 
-    public Certificate getParent() {
-        return parent;
-    }
-
-    public void setParent(Certificate parent) {
-        this.parent = parent;
-    }
-
-    public List<Certificate> getChildren() {
-        return children;
-    }
-
-    public void setChildren(List<Certificate> children) {
-        this.children = children;
-    }
-
     public String getSerialNumber() {
         return serialNumber;
     }
 
     public void setSerialNumber(String serialNumber) {
         this.serialNumber = serialNumber;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
     public String getIssuer() {
