@@ -49,7 +49,7 @@ public class CertificateStorage {
             out.close();
 
             // Store private key of certificate and certificate chain to keystore
-            storePrivateKeyAndChain(
+            this.storePrivateKeyAndChain(
                     certificatesAndKeyHolder.getPrivateKey(),
                     certificatesAndKeyHolder.getChain(),
                     keyStoreFilePath,
@@ -58,12 +58,11 @@ public class CertificateStorage {
             );
 
             // Store certificate to new  trust store
-            createTrustStorage(
+            this.createTrustStorage(
                     leafCertificate,
                     trustStoreFilePath,
                     leafCertificate.getSerialNumber().toString(),
                     this.keyStorePassword
-
             );
 
             return new String[]{certFilePath, keyStoreFilePath, trustStoreFilePath};

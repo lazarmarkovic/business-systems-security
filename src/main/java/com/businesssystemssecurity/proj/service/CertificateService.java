@@ -10,6 +10,8 @@ public interface CertificateService {
 
     Certificate findById(int id);
 
+    Certificate findBySerialNumber(String serialNumber);
+
     ArrayList<Certificate> findAll();
 
     ArrayList<TreeItem> getTree();

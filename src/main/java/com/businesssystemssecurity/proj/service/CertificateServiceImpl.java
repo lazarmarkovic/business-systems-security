@@ -22,6 +22,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -86,7 +87,7 @@ public class CertificateServiceImpl implements CertificateService {
                 SignatureException |
                 NoSuchAlgorithmException |
                 NoSuchProviderException e) {
-            throw new PKIMalfunctionException("Error while creating new root certificate");
+            throw new PKIMalfunctionException("Error while creating new root-certificate");
         }
     }
 
@@ -96,20 +97,20 @@ public class CertificateServiceImpl implements CertificateService {
         Optional<Certificate> opt = certificateRepository.findBySubject(issuer);
         Certificate issuerCertificate = opt.orElseThrow(() -> new EntityNotFoundException(Certificate.class, "issuer", issuer));
 
-        Certificate c = certificateRepository.findBySerialNumber(issuerCertificate.getSerialNumber()).get();
         /* Check if can extend chain */
-        if (c.getType().equals(CertificateType.ROOT.toString()) && certificateType == CertificateType.USER) {
+        if (issuerCertificate.getType().equals(CertificateType.ROOT.toString()) && certificateType == CertificateType.USER) {
             throw new PKIMalfunctionException("USER cert cannot be directly issued by ROOT cert.");
         }
 
-        if (c.getType().equals(CertificateType.USER.toString())) {
+        if (issuerCertificate.getType().equals(CertificateType.USER.toString())) {
             throw new PKIMalfunctionException("Cert cannot be issued by USER.");
         }
 
         CertificatesAndKeyHolder ckh = certificateStorage.loadPrivateKeyAndChain(
                 issuerCertificate.getKeyStoreFilePath(),
-                issuerCertificate.getSerialNumber().toString(),
-                this.keyStorePassword);
+                issuerCertificate.getSerialNumber(),
+                this.keyStorePassword
+        );
 
         X500Principal x500Subject = new X500Principal(subject);
         Principal issuerName = ckh.getChain()[0].getSubjectDN();
@@ -125,6 +126,17 @@ public class CertificateServiceImpl implements CertificateService {
             info.set(X509CertInfo.ISSUER, issuerName);
 
             CertificateExtensions exts = new CertificateExtensions();
+
+            /* Add OCSP responder's URI to certificate as extension */
+            List<AccessDescription> accessDescriptions = new ArrayList<>();
+            GeneralNameInterface responderURL = new URIName("http://localhost:8085/verify");
+            GeneralName generalName = new GeneralName(responderURL);
+            AccessDescription OCSPAccessDescription = new AccessDescription(
+                    AccessDescription.Ad_OCSP_Id,
+                    generalName);
+            accessDescriptions.add(OCSPAccessDescription);
+            exts.set(AuthorityInfoAccessExtension.NAME, new AuthorityInfoAccessExtension(accessDescriptions));
+
             if (certificateType == CertificateType.USER) {
                 exts.set(BasicConstraintsExtension.NAME, new BasicConstraintsExtension(false, -1));
             } else {
@@ -132,6 +144,7 @@ public class CertificateServiceImpl implements CertificateService {
             }
 
             info.set(X509CertInfo.EXTENSIONS, exts);
+
             X509CertImpl outCertificate = new X509CertImpl(info);
             outCertificate.sign(ckh.getPrivateKey(), issuerSigAlg);
 
@@ -150,6 +163,9 @@ public class CertificateServiceImpl implements CertificateService {
             newCertificate.setCA(certificateType == CertificateType.INTERMEDIATE);
             newCertificate.setType(certificateType.toString());
 
+            System.out.println("\n\nSAVING\n");
+            System.out.println(newCertificate);
+            System.out.println("\n\n");
             certificateRepository.save(newCertificate);
             return newCertificate;
 
@@ -159,7 +175,8 @@ public class CertificateServiceImpl implements CertificateService {
                 SignatureException |
                 NoSuchAlgorithmException |
                 NoSuchProviderException e) {
-            throw new PKIMalfunctionException("Error while creating new root certificate");
+            e.printStackTrace();
+            throw new PKIMalfunctionException("Error while creating new sub-certificate");
         }
     }
 
@@ -181,6 +198,11 @@ public class CertificateServiceImpl implements CertificateService {
         Optional<Certificate> opt = this.certificateRepository.findById((long) id);
         return opt.orElseThrow(() -> new EntityNotFoundException(Certificate.class, "id", Long.toString(id)));    }
 
+    @Override
+    public Certificate findBySerialNumber(String serialNumber) {
+        Optional<Certificate> opt = this.certificateRepository.findBySerialNumber(serialNumber);
+        return opt.orElseThrow(() -> new EntityNotFoundException(Certificate.class, "serialNumber", serialNumber));
+    }
 
     @Override
     public ArrayList<Certificate> findAll() {

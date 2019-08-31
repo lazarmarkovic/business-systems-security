@@ -15,7 +15,7 @@ public class Certificate {
     @Column(name="serial_number", nullable = false, unique = true)
     private String serialNumber;
 
-    @Column(name="type", nullable = true, unique = true)
+    @Column(name="type", nullable = true)
     private String type;
 
     @Column(name="issuer", nullable = false)

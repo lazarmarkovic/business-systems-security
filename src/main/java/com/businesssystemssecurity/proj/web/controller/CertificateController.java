@@ -7,6 +7,7 @@ import com.businesssystemssecurity.proj.service.CertificateService;
 import com.businesssystemssecurity.proj.web.dto.certificate.CertificateDTO;
 import com.businesssystemssecurity.proj.web.dto.certificate.CertificateRequestDTO;
 import com.businesssystemssecurity.proj.web.dto.tree.TreeItem;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -111,6 +112,10 @@ public class CertificateController {
     @PreAuthorize("hasAuthority('admin')")
     public ResponseEntity<CertificateDTO> generate(@RequestBody CertificateRequestDTO request) {
 
+        System.out.println("\n\nEVO GA:");
+        System.out.println(request);
+        System.out.println("\n\n");
+
         if (request.getCertificateType() == CertificateType.ROOT) {
             Certificate c = certificateService.createRootCertificate(request.getSubject());
             return new ResponseEntity<>(new CertificateDTO(c), HttpStatus.OK);
@@ -124,6 +129,18 @@ public class CertificateController {
             return new ResponseEntity<>(new CertificateDTO(c), HttpStatus.OK);
         }
     }
+
+
+    @RequestMapping(value = "/test/validate/{serialNumber}",
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<CertificateDTO> validate(@PathVariable String serialNumber) {
+
+        Certificate c = this.certificateService.findBySerialNumber(serialNumber);
+
+        return new ResponseEntity<>(new CertificateDTO(c), HttpStatus.OK);
+    }
+
 
 
 }

@@ -19,7 +19,7 @@ public class DevDatabaseSeederImpl implements DatabaseSeeder {
     UserTableSeed userTableSeed;
 
     @Override
-    @EventListener
+    //@EventListener
     public void seed(ContextRefreshedEvent event) {
         authorityTableSeed.seed("admin");
         authorityTableSeed.seed("regular");
@@ -28,5 +28,6 @@ public class DevDatabaseSeederImpl implements DatabaseSeeder {
         userTableSeed.seed("admin2");
         userTableSeed.seed("regular1");
         userTableSeed.seed("regular2");
+
     }
 }

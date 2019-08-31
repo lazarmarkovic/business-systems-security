@@ -73,6 +73,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .regexMatchers(HttpMethod.POST, "\\/api\\/auth\\/login").permitAll()
                 .regexMatchers(HttpMethod.POST, "\\/api\\/certificates").permitAll()
                 .regexMatchers(HttpMethod.GET, "\\/api\\/certificates").permitAll()
+                .regexMatchers(HttpMethod.GET, "\\/api\\/certificates\\/test\\/validate\\/.*").permitAll()
                 .anyRequest()
                 .authenticated()
                 .and()
