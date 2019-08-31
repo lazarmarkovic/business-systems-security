@@ -7,7 +7,6 @@ import com.businesssystemssecurity.proj.service.CertificateService;
 import com.businesssystemssecurity.proj.web.dto.certificate.CertificateDTO;
 import com.businesssystemssecurity.proj.web.dto.certificate.CertificateRequestDTO;
 import com.businesssystemssecurity.proj.web.dto.tree.TreeItem;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

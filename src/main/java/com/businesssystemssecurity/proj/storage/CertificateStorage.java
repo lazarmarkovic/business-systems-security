@@ -37,8 +37,8 @@ public class CertificateStorage {
 
         try {
             String certFileName = "cert_" + leafCertificate.getSerialNumber() + ".cer";
-            String keyStoreFileName = "keystore_" + leafCertificate.getSerialNumber() + ".jks";
-            String trustStoreFileName = "truststore_" + leafCertificate.getSerialNumber() + ".jks";
+            String keyStoreFileName = "keyStore_" + leafCertificate.getSerialNumber() + ".jks";
+            String trustStoreFileName = "trustStore_" + leafCertificate.getSerialNumber() + ".jks";
 
             String certFilePath = Paths.get(storagePath.toString(), certFileName).toString();
             String keyStoreFilePath = Paths.get(storagePath.toString(), keyStoreFileName).toString();
