@@ -1,7 +1,6 @@
 package com.businesssystemssecurity.proj.web.controller;
 
 import com.businesssystemssecurity.proj.domain.Certificate;
-import com.businesssystemssecurity.proj.domain.helper.CertificateType;
 import com.businesssystemssecurity.proj.exception.PKIMalfunctionException;
 import com.businesssystemssecurity.proj.service.CertificateService;
 import com.businesssystemssecurity.proj.web.dto.certificate.CertificateDTO;
@@ -110,19 +109,12 @@ public class CertificateController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('admin')")
     public ResponseEntity<CertificateDTO> generate(@RequestBody CertificateRequestDTO request) {
+        Certificate c = certificateService.createCertificate(
+                request.getSubjectDTO(),
+                request.getIssuerSerialNumber(),
+                request.getCertificateType());
 
-        if (request.getCertificateType() == CertificateType.ROOT) {
-            Certificate c = certificateService.createRootCertificate(request.getSubject());
-            return new ResponseEntity<>(new CertificateDTO(c), HttpStatus.OK);
-
-        } else {
-            Certificate c = certificateService.createSignedCertificate(
-                    request.getSubject(),
-                    request.getIssuer(),
-                    request.getCertificateType()
-            );
-            return new ResponseEntity<>(new CertificateDTO(c), HttpStatus.OK);
-        }
+        return new ResponseEntity<>(new CertificateDTO(c), HttpStatus.OK);
     }
 
 

@@ -1,29 +1,42 @@
 package com.businesssystemssecurity.proj.service;
 
 import com.businesssystemssecurity.proj.domain.Certificate;
-import com.businesssystemssecurity.proj.domain.helper.CertificatesAndKeyHolder;
 import com.businesssystemssecurity.proj.domain.helper.CertificateType;
+import com.businesssystemssecurity.proj.domain.helper.IssuerData;
+import com.businesssystemssecurity.proj.domain.helper.SubjectData;
 import com.businesssystemssecurity.proj.exception.EntityNotFoundException;
 import com.businesssystemssecurity.proj.exception.PKIMalfunctionException;
 import com.businesssystemssecurity.proj.repository.CertificateRepository;
 import com.businesssystemssecurity.proj.storage.CertificateStorage;
+import com.businesssystemssecurity.proj.web.dto.subject.SubjectDTO;
 import com.businesssystemssecurity.proj.web.dto.tree.TreeItem;
+import org.bouncycastle.asn1.ASN1EncodableVector;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.DERIA5String;
+import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.X500NameBuilder;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x509.*;
+import org.bouncycastle.cert.CertIOException;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import sun.security.tools.keytool.CertAndKeyGen;
-import sun.security.x509.*;
 
-import javax.security.auth.x500.X500Principal;
+
 import javax.transaction.Transactional;
-import java.io.IOException;
+import java.math.BigInteger;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class CertificateServiceImpl implements CertificateService {
@@ -34,190 +47,44 @@ public class CertificateServiceImpl implements CertificateService {
     @Autowired
     private CertificateRepository certificateRepository;
 
-    @Value( "${pki.key-store-password}" )
+    @Value("${pki.key-store-password}")
     private char[] keyStorePassword;
 
-    @Value( "${pki.trust-store-password}" )
+    @Value("${pki.trust-store-password}")
     private char[] trustStorePassword;
 
-    @Override
-    @Transactional
-    public Certificate createRootCertificate(String subject) {
-        CertAndKeyGen gen = generateKeyPair();
-        //CertificateExtensions certificateExtensions = this.setOCSPExtension(new CertificateExtensions());
-        CertificateExtensions certificateExtensions = new CertificateExtensions();
-        X500Principal x500Subject = new X500Principal(subject);
+    @Value("${pki.certificate.provider}")
+    private String provider;
 
-        try {
-            certificateExtensions.set(
-                    BasicConstraintsExtension.NAME,
-                    new BasicConstraintsExtension(true, -1)
-            );
-            X509Certificate outCertificate = gen.getSelfCertificate(
-                    X500Name.asX500Name(x500Subject),
-                    new Date(),
-                    (long) 365 * 24 * 3600,
-                    certificateExtensions
-            );
+    @Value("${pki.algorithm.signature}")
+    private String signatureAlgorithm;
 
-            CertificatesAndKeyHolder certificatesAndKeyHolder = new CertificatesAndKeyHolder();
-            certificatesAndKeyHolder.setChain(new X509Certificate[]{outCertificate});
-            certificatesAndKeyHolder.setPrivateKey(gen.getPrivateKey());
+    @Value("${pki.algorithm.key}")
+    private String keyAlgorithm;
 
-            System.out.println("Started storing certificate.");
-            String[] paths = certificateStorage.storeCertificate(certificatesAndKeyHolder, CertificateType.ROOT);
-            System.out.println("Finished storing certificate.");
-            return saveCertificateInfoToDatabase(
-                    outCertificate,
-                    CertificateType.ROOT,
-                    paths
-            );
+    @Value("${pki.seed.algorithm}")
+    private String seedAlgorithm;
 
-        } catch (IOException |
-                CertificateException |
-                InvalidKeyException |
-                SignatureException |
-                NoSuchAlgorithmException |
-                NoSuchProviderException e) {
-            throw new PKIMalfunctionException("Error while creating new root-certificate");
-        }
-    }
+    @Value("${pki.seed.provider}")
+    private String seedProvider;
 
-    @Override
-    @Transactional
-    public Certificate createSignedCertificate(String subject, String issuer, CertificateType certificateType) {
-        Optional<Certificate> opt = certificateRepository.findBySubject(issuer);
-        Certificate issuerCertificate = opt.orElseThrow(() -> new EntityNotFoundException(Certificate.class, "issuer", issuer));
+    @Value("${pki.ocsp.responder-server-url}")
+    private String OCSPResponderServerURL;
 
-        /* Check if can extend chain */
-        if (issuerCertificate.getType().equals(CertificateType.ROOT.toString()) && certificateType == CertificateType.USER) {
-            throw new PKIMalfunctionException("USER cert cannot be directly issued by ROOT cert.");
-        }
+    @Value("${pki.aia-path}")
+    private String AIAPath;
 
-        if (issuerCertificate.getType().equals(CertificateType.USER.toString())) {
-            throw new PKIMalfunctionException("Cert cannot be issued by USER.");
-        }
+    @Value("${pki.ca.keysize}")
+    private int caKeySize;
 
-        CertificatesAndKeyHolder ckh = certificateStorage.loadPrivateKeyAndChain(
-                issuerCertificate.getKeyStoreFilePath(),
-                issuerCertificate.getSerialNumber(),
-                this.keyStorePassword
-        );
-
-        X500Principal x500Subject = new X500Principal(subject);
-        Principal issuerName = ckh.getChain()[0].getSubjectDN();
-        String issuerSigAlg = ckh.getChain()[0].getSigAlgName();
-        CertAndKeyGen sub = generateKeyPair();
-
-        try {
-            X509Certificate certificate = sub.getSelfCertificate(
-                    X500Name.asX500Name(x500Subject),
-                    (long) 365 * 24 * 3600);
-
-            X509CertInfo info = new X509CertInfo(certificate.getTBSCertificate());
-            info.set(X509CertInfo.ISSUER, issuerName);
-
-            //CertificateExtensions certificateExtensions = this.setOCSPExtension(new CertificateExtensions());
-            CertificateExtensions certificateExtensions = new CertificateExtensions();
-
-            if (certificateType == CertificateType.USER) {
-                certificateExtensions.set(
-                        BasicConstraintsExtension.NAME,
-                        new BasicConstraintsExtension(false, -1)
-                );
-            } else {
-                certificateExtensions.set(
-                        BasicConstraintsExtension.NAME,
-                        new BasicConstraintsExtension(true, -1)
-                );
-            }
-            info.set(X509CertInfo.EXTENSIONS, certificateExtensions);
-            X509CertImpl outCertificate = new X509CertImpl(info);
-            outCertificate.sign(ckh.getPrivateKey(), issuerSigAlg);
-
-            ckh.addToBeginning(outCertificate);
-
-            System.out.println("Started storing certificate.");
-            String[] paths = certificateStorage.storeCertificate(ckh, certificateType);
-            System.out.println("Finished storing certificate.");
-
-            return saveCertificateInfoToDatabase(
-                    outCertificate,
-                    certificateType,
-                    paths
-            );
-
-        } catch (IOException |
-                CertificateException |
-                InvalidKeyException |
-                SignatureException |
-                NoSuchAlgorithmException |
-                NoSuchProviderException e) {
-            e.printStackTrace();
-            throw new PKIMalfunctionException("Error while creating new sub-certificate");
-        }
-    }
-
-    private Certificate saveCertificateInfoToDatabase(
-            X509Certificate x509Certificate,
-            CertificateType certificateType,
-            String[] paths) {
-        Certificate newCertificate = new Certificate();
-        newCertificate.setSerialNumber(x509Certificate.getSerialNumber().toString());
-        newCertificate.setIssuer(x509Certificate.getIssuerDN().getName());
-        newCertificate.setSubject(x509Certificate.getSubjectDN().getName());
-        newCertificate.setCertFilePath(paths[0]);
-        newCertificate.setKeyStoreFilePath(paths[1]);
-        newCertificate.setTrustStoreFilePath(paths[2]);
-        newCertificate.setCA(certificateType != CertificateType.USER);
-        newCertificate.setType(certificateType.toString());
-        newCertificate.setRevoked(false);
-        newCertificate.setRevokedAt(null);
-        newCertificate.setRevokeReason(null);
-        certificateRepository.save(newCertificate);
-        return newCertificate;
-    }
-
-    /* Add OCSP responder's URI to certificate as extension */
-    private CertificateExtensions setOCSPExtension(CertificateExtensions certificateExtensions) {
-        try{
-            List<AccessDescription> accessDescriptions = new ArrayList<>();
-            GeneralNameInterface responderURL = new URIName("http://localhost:8085/verify");
-            GeneralName generalName = new GeneralName(responderURL);
-            AccessDescription OCSPAccessDescription = new AccessDescription(
-                    AccessDescription.Ad_OCSP_Id,
-                    generalName);
-            accessDescriptions.add(OCSPAccessDescription);
-            certificateExtensions.set(
-                    AuthorityInfoAccessExtension.NAME,
-                    new AuthorityInfoAccessExtension(accessDescriptions)
-            );
-
-            return certificateExtensions;
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new PKIMalfunctionException("Cannot add OCSP extension to the certificate");
-        }
-    }
-
-    private CertAndKeyGen generateKeyPair() {
-        try {
-            CertAndKeyGen keyGen = new CertAndKeyGen("RSA", "SHA256WithRSA", null);
-            keyGen.generate(4096);
-            keyGen.setRandom(SecureRandom.getInstance("SHA1PRNG", "SUN"));
-            return keyGen;
-        } catch (InvalidKeyException |
-                NoSuchProviderException |
-                NoSuchAlgorithmException e) {
-            throw new PKIMalfunctionException("Error while generating key pair.");
-        }
-    }
+    @Value("${pki.user.keysize}")
+    private int userKeySize;
 
     @Override
     public Certificate findById(int id) {
         Optional<Certificate> opt = this.certificateRepository.findById((long) id);
-        return opt.orElseThrow(() -> new EntityNotFoundException(Certificate.class, "id", Long.toString(id)));    }
+        return opt.orElseThrow(() -> new EntityNotFoundException(Certificate.class, "id", Long.toString(id)));
+    }
 
     @Override
     public Certificate findBySerialNumber(String serialNumber) {
@@ -230,7 +97,176 @@ public class CertificateServiceImpl implements CertificateService {
         return (ArrayList<Certificate>) certificateRepository.findAll();
     }
 
+    /*-------------------------------------------------------------------------------------------*/
+
     @Override
+    @Transactional
+    public Certificate createCertificate(SubjectDTO subjectDTO, String issuerSerialNumber, CertificateType type) {
+
+        X500Name subjectDN = this.subjectDTOToX500Name(subjectDTO);
+        KeyPair keyPair;
+        SubjectData subject;
+        IssuerData issuer;
+        X509Certificate certificate;
+
+        if (issuerSerialNumber == null || type == CertificateType.ROOT) {
+            keyPair = generateKeyPair(true);
+            subject = generateSubjectData(keyPair.getPublic(), subjectDN, true);
+            issuer = new IssuerData(keyPair.getPrivate(), subjectDN, subject.getPublicKey(), subject.getSerialNumber());
+            certificate = generateCertificate(subject, issuer, true);
+        }
+        else if (type == CertificateType.INTERMEDIATE) {
+            keyPair = generateKeyPair(true);
+            subject = generateSubjectData(keyPair.getPublic(), subjectDN, true);
+            issuer = this.certificateStorage.getIssuerDataBySerialNumber(issuerSerialNumber);
+            certificate = generateCertificate(subject, issuer, true);
+        }
+        else {
+            keyPair = generateKeyPair(false);
+            issuer = this.certificateStorage.getIssuerDataBySerialNumber(issuerSerialNumber);
+            subject = generateSubjectData(keyPair.getPublic(), subjectDN, false);
+            certificate = generateCertificate(subject, issuer, false);
+        }
+
+        /* Store certificate chain to local keystore */
+        this.certificateStorage.storeCertificateChan(new X509Certificate[]{certificate}, keyPair.getPrivate());
+
+        /* Create distribution here */
+
+        String[] filePathsOfDistributionFiles = this.certificateStorage.storeCertificateDistributionFiles(
+                new X509Certificate[]{certificate},
+                keyPair.getPrivate(),
+                type
+        );
+
+        Certificate c = new Certificate(
+                subject.getSerialNumber().toString(),
+                type.toString(),
+                certificate.getIssuerDN().toString(),
+                certificate.getIssuerDN().toString(),
+                type != CertificateType.USER,
+                filePathsOfDistributionFiles[0],
+                filePathsOfDistributionFiles[1],
+                filePathsOfDistributionFiles[2],
+                false,
+                null,
+                null
+        );
+
+        certificateRepository.save(c);
+        return c;
+    }
+
+    private X500Name subjectDTOToX500Name(SubjectDTO subjectDTO) {
+        X500NameBuilder nameBuilder = new X500NameBuilder();
+
+        if (!subjectDTO.getCommonName().isEmpty()) {
+            nameBuilder.addRDN(BCStyle.CN, subjectDTO.getCommonName());
+        }
+        if (!subjectDTO.getOrganizationUnit().isEmpty()) {
+            nameBuilder.addRDN(BCStyle.OU, subjectDTO.getOrganizationUnit());
+        }
+        if (!subjectDTO.getOrganization().isEmpty()) {
+            nameBuilder.addRDN(BCStyle.O, subjectDTO.getOrganization());
+        }
+        if (!subjectDTO.getLocality().isEmpty()) {
+            nameBuilder.addRDN(BCStyle.L, subjectDTO.getLocality());
+        }
+        if (!subjectDTO.getState().isEmpty()) {
+            nameBuilder.addRDN(BCStyle.ST, subjectDTO.getState());
+        }
+        if (!subjectDTO.getCountry().isEmpty()) {
+            nameBuilder.addRDN(BCStyle.C, subjectDTO.getCountry());
+        }
+        return nameBuilder.build();
+    }
+
+    private X509Certificate generateCertificate(SubjectData subjectData, IssuerData issuerData, boolean isCA) {
+        try {
+            ContentSigner contentSigner = new JcaContentSignerBuilder(
+                    this.signatureAlgorithm)
+                    .setProvider(this.provider).build(issuerData.getPrivateKey());
+
+            X509v3CertificateBuilder v3CertGen = new JcaX509v3CertificateBuilder(
+                    issuerData.getX500name(),
+                    subjectData.getSerialNumber(),
+                    subjectData.getStartDate(),
+                    subjectData.getEndDate(),
+                    subjectData.getX500name(),
+                    subjectData.getPublicKey());
+
+            BasicConstraints basicConstraints = new BasicConstraints(isCA);
+            v3CertGen.addExtension(new ASN1ObjectIdentifier("2.5.29.19"), true, basicConstraints);
+
+            JcaX509ExtensionUtils extensionUtils = new JcaX509ExtensionUtils();
+
+            AuthorityKeyIdentifier authorityKeyIdentifier = extensionUtils
+                    .createAuthorityKeyIdentifier(issuerData.getPublicKey());
+            v3CertGen.addExtension(new ASN1ObjectIdentifier("2.5.29.35"), false, authorityKeyIdentifier);
+
+            SubjectKeyIdentifier subjectKeyIdentifier = extensionUtils
+                    .createSubjectKeyIdentifier(subjectData.getPublicKey());
+            v3CertGen.addExtension(new ASN1ObjectIdentifier("2.5.29.14"), false, subjectKeyIdentifier);
+
+            /* Add OCSP response server data */
+            //addAuthorityInformationAccess(issuerData.getX500name().toString(), v3CertGen);
+
+            return new JcaX509CertificateConverter()
+                    .setProvider(this.provider)
+                    .getCertificate(v3CertGen.build(contentSigner));
+        } catch (IllegalArgumentException |
+                IllegalStateException |
+                OperatorCreationException |
+                CertificateException |
+                CertIOException |
+                NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            throw new PKIMalfunctionException("Error while generating new certificate.");
+        }
+    }
+
+    private void addAuthorityInformationAccess(String issuerName, X509v3CertificateBuilder v3CertGen) throws CertIOException {
+        AccessDescription caIssuers = new AccessDescription(
+                AccessDescription.id_ad_caIssuers,
+                new GeneralName(
+                        GeneralName.uniformResourceIdentifier,
+                        new DERIA5String(this.OCSPResponderServerURL + issuerName + this.AIAPath)
+                )
+        );
+        ASN1EncodableVector aia_ASN = new ASN1EncodableVector();
+        aia_ASN.add(caIssuers);
+        v3CertGen.addExtension(Extension.authorityInfoAccess, false, new DERSequence(aia_ASN));
+    }
+
+    private SubjectData generateSubjectData(PublicKey publicKey, X500Name subjectDN, boolean isCA) {
+        long now = System.currentTimeMillis();
+        Date startDate = new Date(now);
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(startDate);
+        calendar.add(Calendar.YEAR, 1);
+        Date endDate = calendar.getTime();
+        return new SubjectData(publicKey, subjectDN, new BigInteger(Long.toString(now)), startDate, endDate);
+    }
+
+
+    private KeyPair generateKeyPair(boolean isCA) {
+        try {
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance(this.keyAlgorithm);
+            SecureRandom random = SecureRandom.getInstance(this.seedAlgorithm, this.seedProvider);
+            if (isCA) {
+                keyGen.initialize(this.caKeySize, random);
+            } else {
+                keyGen.initialize(this.userKeySize, random);
+            }
+            return keyGen.generateKeyPair();
+        } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
+            e.printStackTrace();
+            throw new PKIMalfunctionException("Error while generating new key pair.");
+        }
+    }
+
+    @Override
+    @Transactional
     public ArrayList<TreeItem> getTree() {
         ArrayList<Certificate> certs = this.findAll();
         ArrayList<TreeItem> forest = new ArrayList<>();
@@ -247,12 +283,12 @@ public class CertificateServiceImpl implements CertificateService {
         return forest;
     }
 
-    private void addToForest(Certificate cert,  ArrayList<TreeItem> forest) {
+    private void addToForest(Certificate cert, ArrayList<TreeItem> forest) {
         if (forest.size() == 0) {
             return;
         }
 
-        for (TreeItem ti : forest)  {
+        for (TreeItem ti : forest) {
             if (ti.getName().equals(cert.getIssuer())) {
                 TreeItem treeToAdd = new TreeItem(cert.getId(), cert.getSubject());
                 ti.getChildren().add(treeToAdd);

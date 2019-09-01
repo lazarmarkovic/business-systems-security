@@ -46,6 +46,32 @@ public class Certificate {
     @Column(columnDefinition = "MEDIUMTEXT", nullable = true)
     private String revokeReason;
 
+    public Certificate() {}
+
+    public Certificate(String serialNumber,
+                       String type,
+                       String issuer,
+                       String subject,
+                       Boolean CA,
+                       String certFilePath,
+                       String keyStoreFilePath,
+                       String trustStoreFilePath,
+                       Boolean revoked,
+                       Date revokedAt,
+                       String revokeReason)
+    {
+        this.serialNumber = serialNumber;
+        this.type = type;
+        this.issuer = issuer;
+        this.subject = subject;
+        this.CA = CA;
+        this.certFilePath = certFilePath;
+        this.keyStoreFilePath = keyStoreFilePath;
+        this.trustStoreFilePath = trustStoreFilePath;
+        this.revoked = revoked;
+        this.revokedAt = revokedAt;
+        this.revokeReason = revokeReason;
+    }
 
     public long getId() {
         return id;

@@ -1,12 +1,6 @@
-package com.businesssystemssecurity.proj.web.dto.certificate;
+package com.businesssystemssecurity.proj.web.dto.subject;
 
-import com.businesssystemssecurity.proj.domain.helper.CertificateType;
-import com.businesssystemssecurity.proj.web.dto.subject.SubjectDTO;
-
-public class CertificateRequestDTO {
-
-    private String issuerSerialNumber = "";
-
+public class SubjectDTO {
     private String commonName = "";
     private String organizationUnit = "";
     private String organization = "";
@@ -14,28 +8,15 @@ public class CertificateRequestDTO {
     private String state = "";
     private String country = "";
 
-    public CertificateRequestDTO() {
-    }
+    public SubjectDTO() {}
 
-    public SubjectDTO getSubjectDTO() {
-        return new SubjectDTO(
-                this.commonName,
-                this.organizationUnit,
-                this.organization,
-                this.locality,
-                this.state,
-                this.country
-        );
-    }
-
-    private CertificateType certificateType = CertificateType.ROOT;
-
-    public String getIssuerSerialNumber() {
-        return issuerSerialNumber;
-    }
-
-    public void setIssuerSerialNumber(String issuerSerialNumber) {
-        this.issuerSerialNumber = issuerSerialNumber;
+    public SubjectDTO(String commonName, String organizationUnit, String organization, String locality, String state, String country) {
+        this.commonName = commonName;
+        this.organizationUnit = organizationUnit;
+        this.organization = organization;
+        this.locality = locality;
+        this.state = state;
+        this.country = country;
     }
 
     public String getCommonName() {
@@ -84,13 +65,5 @@ public class CertificateRequestDTO {
 
     public void setCountry(String country) {
         this.country = country;
-    }
-
-    public CertificateType getCertificateType() {
-        return certificateType;
-    }
-
-    public void setCertificateType(CertificateType certificateType) {
-        this.certificateType = certificateType;
     }
 }
