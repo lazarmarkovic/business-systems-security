@@ -72,7 +72,7 @@ public class RestClientConfig {
                 }
             }
 
-            KeyStore trustStore = KeyStore.getInstance("jks");
+            KeyStore trustStore = KeyStore.getInstance("PKCS12");
             trustStore.load(truststore.getInputStream(), truststorePassword.toCharArray());
 
 
@@ -97,9 +97,10 @@ public class RestClientConfig {
                     // If you're planning to use client-cert auth,
                     // merge results from "defaultTm" and "myTm".
                     if (finalMyTm != null && finalDefaultTm != null) {
-                        return Stream.concat(Arrays.stream(finalMyTm.getAcceptedIssuers())
-                                , Arrays.stream(finalDefaultTm.getAcceptedIssuers()))
-                                .toArray(X509Certificate[]::new);
+                        return Stream.concat(
+                                Arrays.stream(finalMyTm.getAcceptedIssuers()),
+                                Arrays.stream(finalDefaultTm.getAcceptedIssuers())
+                        ).toArray(X509Certificate[]::new);
                     }
                     return new X509Certificate[] {};
                 }
@@ -107,6 +108,9 @@ public class RestClientConfig {
                 @Override
                 public void checkServerTrusted(X509Certificate[] chain,
                                                String authType) throws CertificateException {
+
+                    System.out.println("Checking server.");
+
                     try {
                         if (finalMyTm != null) {
                             finalMyTm.checkServerTrusted(chain, authType);
@@ -128,6 +132,8 @@ public class RestClientConfig {
                                                String authType) throws CertificateException {
                     // If you're planning to use client-cert auth,
                     // do the same as checking the server.
+
+                    System.out.println("Checking client.");
                     try {
                         if (finalMyTm != null) {
                             finalMyTm.checkServerTrusted(chain, authType);
@@ -147,7 +153,7 @@ public class RestClientConfig {
 
             KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
 
-            KeyStore keyStore = KeyStore.getInstance("jks");
+            KeyStore keyStore = KeyStore.getInstance("PKCS12");
             keyStore.load(keystore.getInputStream(), keystorePassword.toCharArray());
 
             kmf.init(keyStore, keystorePassword.toCharArray());

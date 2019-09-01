@@ -111,10 +111,6 @@ public class CertificateController {
     @PreAuthorize("hasAuthority('admin')")
     public ResponseEntity<CertificateDTO> generate(@RequestBody CertificateRequestDTO request) {
 
-        System.out.println("\n\nEVO GA:");
-        System.out.println(request);
-        System.out.println("\n\n");
-
         if (request.getCertificateType() == CertificateType.ROOT) {
             Certificate c = certificateService.createRootCertificate(request.getSubject());
             return new ResponseEntity<>(new CertificateDTO(c), HttpStatus.OK);

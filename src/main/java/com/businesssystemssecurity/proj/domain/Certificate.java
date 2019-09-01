@@ -1,7 +1,7 @@
 package com.businesssystemssecurity.proj.domain;
 
 import javax.persistence.*;
-import java.util.List;
+import java.util.Date;
 
 @Entity
 @Table(name = "certificate")
@@ -36,8 +36,15 @@ public class Certificate {
     @Column(name="trust_store_file_path")
     private String trustStoreFilePath;
 
-    @Column(name="active", nullable = false)
-    private Boolean active;
+    @Column(name="revoked", nullable = false)
+    private Boolean revoked;
+
+    @Column(name="revokedAt", nullable = true)
+    @Temporal(TemporalType.TIMESTAMP)
+    private java.util.Date revokedAt;
+
+    @Column(columnDefinition = "MEDIUMTEXT", nullable = true)
+    private String revokeReason;
 
 
     public long getId() {
@@ -112,11 +119,27 @@ public class Certificate {
         this.trustStoreFilePath = trustStoreFilePath;
     }
 
-    public Boolean getActive() {
-        return active;
+    public Boolean getRevoked() {
+        return revoked;
     }
 
-    public void setActive(Boolean active) {
-        this.active = active;
+    public void setRevoked(Boolean revoked) {
+        this.revoked = revoked;
+    }
+
+    public Date getRevokedAt() {
+        return revokedAt;
+    }
+
+    public void setRevokedAt(Date revokedAt) {
+        this.revokedAt = revokedAt;
+    }
+
+    public String getRevokeReason() {
+        return revokeReason;
+    }
+
+    public void setRevokeReason(String revokeReason) {
+        this.revokeReason = revokeReason;
     }
 }

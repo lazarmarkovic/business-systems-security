@@ -34,9 +34,6 @@ public class CertificateServiceImpl implements CertificateService {
     @Autowired
     private CertificateRepository certificateRepository;
 
-    @Value( "${pki.key-alias}" )
-    private String keyStoreAliasName;
-
     @Value( "${pki.key-store-password}" )
     private char[] keyStorePassword;
 
@@ -47,39 +44,34 @@ public class CertificateServiceImpl implements CertificateService {
     @Transactional
     public Certificate createRootCertificate(String subject) {
         CertAndKeyGen gen = generateKeyPair();
-        CertificateExtensions exts = new CertificateExtensions();
-
+        //CertificateExtensions certificateExtensions = this.setOCSPExtension(new CertificateExtensions());
+        CertificateExtensions certificateExtensions = new CertificateExtensions();
         X500Principal x500Subject = new X500Principal(subject);
 
         try {
-            exts.set(BasicConstraintsExtension.NAME, new BasicConstraintsExtension(true, -1));
-            X509Certificate certificate = gen.getSelfCertificate(
+            certificateExtensions.set(
+                    BasicConstraintsExtension.NAME,
+                    new BasicConstraintsExtension(true, -1)
+            );
+            X509Certificate outCertificate = gen.getSelfCertificate(
                     X500Name.asX500Name(x500Subject),
                     new Date(),
                     (long) 365 * 24 * 3600,
-                    exts
+                    certificateExtensions
             );
 
             CertificatesAndKeyHolder certificatesAndKeyHolder = new CertificatesAndKeyHolder();
-            certificatesAndKeyHolder.setChain(new X509Certificate[]{certificate});
+            certificatesAndKeyHolder.setChain(new X509Certificate[]{outCertificate});
             certificatesAndKeyHolder.setPrivateKey(gen.getPrivateKey());
 
+            System.out.println("Started storing certificate.");
             String[] paths = certificateStorage.storeCertificate(certificatesAndKeyHolder, CertificateType.ROOT);
-
-            Certificate c = new Certificate();
-            c.setSerialNumber(certificate.getSerialNumber().toString());
-            c.setIssuer(certificate.getIssuerDN().getName());
-            c.setSubject(certificate.getSubjectDN().getName());
-            c.setCertFilePath(paths[0]);
-            c.setKeyStoreFilePath(paths[1]);
-            c.setTrustStoreFilePath(paths[2]);
-            c.setCA(true);
-            c.setActive(true);
-            c.setType(CertificateType.ROOT.toString());
-
-            certificateRepository.save(c);
-            return c;
-
+            System.out.println("Finished storing certificate.");
+            return saveCertificateInfoToDatabase(
+                    outCertificate,
+                    CertificateType.ROOT,
+                    paths
+            );
 
         } catch (IOException |
                 CertificateException |
@@ -125,49 +117,35 @@ public class CertificateServiceImpl implements CertificateService {
             X509CertInfo info = new X509CertInfo(certificate.getTBSCertificate());
             info.set(X509CertInfo.ISSUER, issuerName);
 
-            CertificateExtensions exts = new CertificateExtensions();
-
-            /* Add OCSP responder's URI to certificate as extension */
-            List<AccessDescription> accessDescriptions = new ArrayList<>();
-            GeneralNameInterface responderURL = new URIName("http://localhost:8085/verify");
-            GeneralName generalName = new GeneralName(responderURL);
-            AccessDescription OCSPAccessDescription = new AccessDescription(
-                    AccessDescription.Ad_OCSP_Id,
-                    generalName);
-            accessDescriptions.add(OCSPAccessDescription);
-            exts.set(AuthorityInfoAccessExtension.NAME, new AuthorityInfoAccessExtension(accessDescriptions));
+            //CertificateExtensions certificateExtensions = this.setOCSPExtension(new CertificateExtensions());
+            CertificateExtensions certificateExtensions = new CertificateExtensions();
 
             if (certificateType == CertificateType.USER) {
-                exts.set(BasicConstraintsExtension.NAME, new BasicConstraintsExtension(false, -1));
+                certificateExtensions.set(
+                        BasicConstraintsExtension.NAME,
+                        new BasicConstraintsExtension(false, -1)
+                );
             } else {
-                exts.set(BasicConstraintsExtension.NAME, new BasicConstraintsExtension(true, -1));
+                certificateExtensions.set(
+                        BasicConstraintsExtension.NAME,
+                        new BasicConstraintsExtension(true, -1)
+                );
             }
-
-            info.set(X509CertInfo.EXTENSIONS, exts);
-
+            info.set(X509CertInfo.EXTENSIONS, certificateExtensions);
             X509CertImpl outCertificate = new X509CertImpl(info);
             outCertificate.sign(ckh.getPrivateKey(), issuerSigAlg);
 
             ckh.addToBeginning(outCertificate);
 
+            System.out.println("Started storing certificate.");
             String[] paths = certificateStorage.storeCertificate(ckh, certificateType);
+            System.out.println("Finished storing certificate.");
 
-            Certificate newCertificate = new Certificate();
-            newCertificate.setActive(true);
-            newCertificate.setSerialNumber(outCertificate.getSerialNumber().toString());
-            newCertificate.setIssuer(outCertificate.getIssuerDN().getName());
-            newCertificate.setSubject(outCertificate.getSubjectDN().getName());
-            newCertificate.setCertFilePath(paths[0]);
-            newCertificate.setKeyStoreFilePath(paths[1]);
-            newCertificate.setTrustStoreFilePath(paths[2]);
-            newCertificate.setCA(certificateType == CertificateType.INTERMEDIATE);
-            newCertificate.setType(certificateType.toString());
-
-            System.out.println("\n\nSAVING\n");
-            System.out.println(newCertificate);
-            System.out.println("\n\n");
-            certificateRepository.save(newCertificate);
-            return newCertificate;
+            return saveCertificateInfoToDatabase(
+                    outCertificate,
+                    certificateType,
+                    paths
+            );
 
         } catch (IOException |
                 CertificateException |
@@ -177,6 +155,49 @@ public class CertificateServiceImpl implements CertificateService {
                 NoSuchProviderException e) {
             e.printStackTrace();
             throw new PKIMalfunctionException("Error while creating new sub-certificate");
+        }
+    }
+
+    private Certificate saveCertificateInfoToDatabase(
+            X509Certificate x509Certificate,
+            CertificateType certificateType,
+            String[] paths) {
+        Certificate newCertificate = new Certificate();
+        newCertificate.setSerialNumber(x509Certificate.getSerialNumber().toString());
+        newCertificate.setIssuer(x509Certificate.getIssuerDN().getName());
+        newCertificate.setSubject(x509Certificate.getSubjectDN().getName());
+        newCertificate.setCertFilePath(paths[0]);
+        newCertificate.setKeyStoreFilePath(paths[1]);
+        newCertificate.setTrustStoreFilePath(paths[2]);
+        newCertificate.setCA(certificateType != CertificateType.USER);
+        newCertificate.setType(certificateType.toString());
+        newCertificate.setRevoked(false);
+        newCertificate.setRevokedAt(null);
+        newCertificate.setRevokeReason(null);
+        certificateRepository.save(newCertificate);
+        return newCertificate;
+    }
+
+    /* Add OCSP responder's URI to certificate as extension */
+    private CertificateExtensions setOCSPExtension(CertificateExtensions certificateExtensions) {
+        try{
+            List<AccessDescription> accessDescriptions = new ArrayList<>();
+            GeneralNameInterface responderURL = new URIName("http://localhost:8085/verify");
+            GeneralName generalName = new GeneralName(responderURL);
+            AccessDescription OCSPAccessDescription = new AccessDescription(
+                    AccessDescription.Ad_OCSP_Id,
+                    generalName);
+            accessDescriptions.add(OCSPAccessDescription);
+            certificateExtensions.set(
+                    AuthorityInfoAccessExtension.NAME,
+                    new AuthorityInfoAccessExtension(accessDescriptions)
+            );
+
+            return certificateExtensions;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new PKIMalfunctionException("Cannot add OCSP extension to the certificate");
         }
     }
 

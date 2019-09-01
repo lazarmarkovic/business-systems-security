@@ -3,10 +3,9 @@ package com.businesssystemssecurity.proj.web.dto.certificate;
 import com.businesssystemssecurity.proj.domain.helper.CertificateType;
 
 public class CertificateRequestDTO {
+
     private String issuer;
-
     private String subject;
-
     private CertificateType certificateType;
 
 

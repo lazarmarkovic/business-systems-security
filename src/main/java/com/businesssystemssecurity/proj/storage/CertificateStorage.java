@@ -4,6 +4,7 @@ package com.businesssystemssecurity.proj.storage;
 import com.businesssystemssecurity.proj.domain.helper.CertificatesAndKeyHolder;
 import com.businesssystemssecurity.proj.domain.helper.CertificateType;
 import com.businesssystemssecurity.proj.exception.PKIMalfunctionException;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +14,6 @@ import java.nio.file.Path;
 import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,31 +22,31 @@ import java.util.Arrays;
 @Component
 public class CertificateStorage {
 
-
-    @Value( "${pki.key-alias}" )
-    private String keyStoreAliasName;
-
     @Value( "${pki.key-store-password}" )
     private char[] keyStorePassword;
 
     public String[] storeCertificate(CertificatesAndKeyHolder certificatesAndKeyHolder,
-                                     CertificateType type)
-    {
+                                     CertificateType type) {
         X509Certificate leafCertificate = certificatesAndKeyHolder.getChain()[0];
         Path storagePath = Paths.get("src", "main", "resources", "storage", type.toString());
 
         try {
-            String certFileName = "cert_" + leafCertificate.getSerialNumber() + ".cer";
-            String keyStoreFileName = "keyStore_" + leafCertificate.getSerialNumber() + ".jks";
-            String trustStoreFileName = "trustStore_" + leafCertificate.getSerialNumber() + ".jks";
+            String certFileName = "cert_" + leafCertificate.getSerialNumber() + ".pem";
+            String keyStoreFileName = "keyStore_" + leafCertificate.getSerialNumber() + ".p12";
+            String trustStoreFileName = "trustStore_" + leafCertificate.getSerialNumber() + ".p12";
 
             String certFilePath = Paths.get(storagePath.toString(), certFileName).toString();
             String keyStoreFilePath = Paths.get(storagePath.toString(), keyStoreFileName).toString();
             String trustStoreFilePath = Paths.get(storagePath.toString(), trustStoreFileName).toString();
 
-            FileOutputStream out = new FileOutputStream(certFilePath);
-            out.write(leafCertificate.getEncoded());
-            out.close();
+            // Store certificate chain to PEM file
+            JcaPEMWriter pemWrt = pemWrt = new JcaPEMWriter(new FileWriter(certFilePath));
+            for (int i = 0; i < certificatesAndKeyHolder.getChain().length; i++) {
+                pemWrt.writeObject(certificatesAndKeyHolder.getChain()[i]);
+                pemWrt.flush();
+
+            }
+            pemWrt.close();
 
             // Store private key of certificate and certificate chain to keystore
             this.storePrivateKeyAndChain(
@@ -68,21 +68,8 @@ public class CertificateStorage {
             return new String[]{certFilePath, keyStoreFilePath, trustStoreFilePath};
 
         } catch (Exception e) {
-            throw new PKIMalfunctionException("Error while storing root certificate.");
-        }
-    }
-
-    public X509Certificate loadCertificate(String certificateFilePath) {
-        try {
-            FileInputStream fis = new FileInputStream(certificateFilePath);
-            BufferedInputStream bis = new BufferedInputStream(fis);
-
-            CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            Certificate cert = cf.generateCertificate(bis);
-
-            return (X509Certificate) cert;
-        } catch (FileNotFoundException | CertificateException e) {
-            throw new PKIMalfunctionException("Error while reading certificate from given path.");
+            e.printStackTrace();
+            throw new PKIMalfunctionException("Error while storing certificate.");
         }
     }
 
@@ -94,7 +81,7 @@ public class CertificateStorage {
             char[] password)
     {
         try {
-            KeyStore keyStore = KeyStore.getInstance("jks");
+            KeyStore keyStore = KeyStore.getInstance("PKCS12");
             keyStore.load(null, null);
             keyStore.setKeyEntry(alias, key, password, certificateChain);
             keyStore.store(new FileOutputStream(storePath), password);
@@ -114,7 +101,7 @@ public class CertificateStorage {
             char[] password)
     {
         try {
-            KeyStore keyStore = KeyStore.getInstance("jks");
+            KeyStore keyStore = KeyStore.getInstance("PKCS12");
             keyStore.load(null, null);
             keyStore.setCertificateEntry(alias, certificate);
             keyStore.store(new FileOutputStream(storePath), password);
@@ -133,7 +120,7 @@ public class CertificateStorage {
             char[] password)
     {
         try {
-            KeyStore keyStore = KeyStore.getInstance("jks");
+            KeyStore keyStore = KeyStore.getInstance("PKCS12");
 
             keyStore.load(new FileInputStream(storePath), password);
             Key key = keyStore.getKey(alias, password);

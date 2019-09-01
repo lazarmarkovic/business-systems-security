@@ -2,13 +2,17 @@ package com.businesssystemssecurity.proj.web.dto.certificate;
 
 import com.businesssystemssecurity.proj.domain.Certificate;
 
+import java.util.Date;
+
 public class CertificateDTO {
     private long id;
     private String serialNumber;
     private String issuer;
     private String subject;
     private Boolean CA;
-    private Boolean active;
+    private Boolean revoked;
+    private java.util.Date revokedAt;
+    private String revokeReason;
 
     public CertificateDTO() {}
 
@@ -19,16 +23,21 @@ public class CertificateDTO {
         this.issuer = c.getIssuer();
         this.subject = c.getSubject();
         this.CA = c.getCA();
-        this.active = c.getActive();
+        this.revoked = c.getRevoked();
+        this.revokedAt = c.getRevokedAt();
+        this.revokeReason = c.getRevokeReason();
+
     }
 
-    public CertificateDTO(long id, String serialNumber, String issuer, String subject, Boolean CA, Boolean active) {
+    public CertificateDTO(long id, String serialNumber, String issuer, String subject, Boolean CA, Boolean revoked, java.util.Date revokedAt, String revokeReason) {
         this.id = id;
         this.serialNumber = serialNumber;
         this.issuer = issuer;
         this.subject = subject;
         this.CA = CA;
-        this.active = active;
+        this.revoked = revoked;
+        this.revokedAt = revokedAt;
+        this.revokeReason = revokeReason;
     }
 
 
@@ -72,11 +81,27 @@ public class CertificateDTO {
         this.CA = CA;
     }
 
-    public Boolean getActive() {
-        return active;
+    public Boolean getRevoked() {
+        return revoked;
     }
 
-    public void setActive(Boolean active) {
-        this.active = active;
+    public void setRevoked(Boolean revoked) {
+        this.revoked = revoked;
+    }
+
+    public Date getRevokedAt() {
+        return revokedAt;
+    }
+
+    public void setRevokedAt(Date revokedAt) {
+        this.revokedAt = revokedAt;
+    }
+
+    public String getRevokeReason() {
+        return revokeReason;
+    }
+
+    public void setRevokeReason(String revokeReason) {
+        this.revokeReason = revokeReason;
     }
 }
