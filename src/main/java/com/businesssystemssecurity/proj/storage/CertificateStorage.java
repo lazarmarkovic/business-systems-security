@@ -27,21 +27,22 @@ public class CertificateStorage {
     @Value( "${pki.key-store-password}" )
     private char[] keyStorePassword;
 
-    @Value("${pki.keystore-path}")
-    private String keyStorePath;
+    @Value("${pki.keystore-filename}")
+    private String keyStoreFileName;
 
     public void storeCertificateChan(X509Certificate[] chain, PrivateKey privateKey) {
         String serialNumber = chain[0].getSerialNumber().toString();
+        Path pathToKeyStore = Paths.get("src", "main", "resources", "keystore", this.keyStoreFileName);
         try {
             KeyStore keyStore = KeyStore.getInstance("PKCS12");
             try {
-                keyStore.load(new FileInputStream(this.keyStorePath), this.keyStorePassword);
+                keyStore.load(new FileInputStream(pathToKeyStore.toString()), this.keyStorePassword);
             } catch (IOException e) {
                 keyStore.load(null, null);
             }
 
             keyStore.setKeyEntry(serialNumber, privateKey, serialNumber.toCharArray(), chain);
-            keyStore.store(new FileOutputStream(this.keyStorePath), this.keyStorePassword);
+            keyStore.store(new FileOutputStream(pathToKeyStore.toString()), this.keyStorePassword);
         } catch (KeyStoreException |
                 NoSuchAlgorithmException |
                 CertificateException |
@@ -57,7 +58,7 @@ public class CertificateStorage {
             CertificateType type) {
 
         X509Certificate leafCertificate = chain[0];
-        Path storagePath = Paths.get("src", "main", "resources", "d_storage", type.toString());
+        Path storagePath = Paths.get("src", "main", "resources", "storage", type.toString());
 
         try {
             String certFileName = "cert_" + leafCertificate.getSerialNumber() + ".pem";
@@ -177,15 +178,20 @@ public class CertificateStorage {
     }
 
     public IssuerData getIssuerDataBySerialNumber(String serialNumber) {
+
+        Path pathToKeyStore = Paths.get("src", "main", "resources", "keystore", this.keyStoreFileName);
         try {
             KeyStore keyStore = KeyStore.getInstance("PKCS12");
-            keyStore.load(new FileInputStream(this.keyStorePath), this.keyStorePassword);
+            keyStore.load(new FileInputStream(pathToKeyStore.toString()), this.keyStorePassword);
 
             Key key = keyStore.getKey(serialNumber, serialNumber.toCharArray());
             if (key instanceof PrivateKey) {
                 X509Certificate cert = (X509Certificate) keyStore.getCertificate(serialNumber);
-                return new IssuerData((PrivateKey) key, new JcaX509CertificateHolder(cert).getSubject(),
-                        cert.getPublicKey(), cert.getSerialNumber());
+                return new IssuerData(
+                        (PrivateKey) key,
+                        new JcaX509CertificateHolder(cert).getSubject(),
+                        cert.getPublicKey(),
+                        cert.getSerialNumber());
             } else {
                 throw new PKIMalfunctionException("Error inside getIssuerDataBySerialNumber method. Invalid private key.");
             }

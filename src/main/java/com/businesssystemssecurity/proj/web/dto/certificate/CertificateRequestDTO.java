@@ -5,14 +5,15 @@ import com.businesssystemssecurity.proj.web.dto.subject.SubjectDTO;
 
 public class CertificateRequestDTO {
 
-    private String issuerSerialNumber = "";
+    private String issuerName = "";
 
     private String commonName = "";
     private String organizationUnit = "";
     private String organization = "";
-    private String locality = "";
-    private String state = "";
     private String country = "";
+
+    private CertificateType certificateType;
+
 
     public CertificateRequestDTO() {
     }
@@ -22,20 +23,16 @@ public class CertificateRequestDTO {
                 this.commonName,
                 this.organizationUnit,
                 this.organization,
-                this.locality,
-                this.state,
                 this.country
         );
     }
 
-    private CertificateType certificateType = CertificateType.ROOT;
-
-    public String getIssuerSerialNumber() {
-        return issuerSerialNumber;
+    public String getIssuerName() {
+        return issuerName;
     }
 
-    public void setIssuerSerialNumber(String issuerSerialNumber) {
-        this.issuerSerialNumber = issuerSerialNumber;
+    public void setIssuerName(String issuerName) {
+        this.issuerName = issuerName;
     }
 
     public String getCommonName() {
@@ -60,22 +57,6 @@ public class CertificateRequestDTO {
 
     public void setOrganization(String organization) {
         this.organization = organization;
-    }
-
-    public String getLocality() {
-        return locality;
-    }
-
-    public void setLocality(String locality) {
-        this.locality = locality;
-    }
-
-    public String getState() {
-        return state;
-    }
-
-    public void setState(String state) {
-        this.state = state;
     }
 
     public String getCountry() {

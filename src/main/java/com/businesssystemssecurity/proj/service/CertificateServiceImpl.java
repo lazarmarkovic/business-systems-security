@@ -93,6 +93,12 @@ public class CertificateServiceImpl implements CertificateService {
     }
 
     @Override
+    public Certificate findBySubjectName(String subjectName) {
+        Optional<Certificate> opt = this.certificateRepository.findBySubject(subjectName);
+        return opt.orElseThrow(() -> new EntityNotFoundException(Certificate.class, "subjectName", subjectName));
+    }
+
+    @Override
     public ArrayList<Certificate> findAll() {
         return (ArrayList<Certificate>) certificateRepository.findAll();
     }
@@ -109,7 +115,7 @@ public class CertificateServiceImpl implements CertificateService {
         IssuerData issuer;
         X509Certificate certificate;
 
-        if (issuerSerialNumber == null || type == CertificateType.ROOT) {
+        if (type == CertificateType.ROOT) {
             keyPair = generateKeyPair(true);
             subject = generateSubjectData(keyPair.getPublic(), subjectDN, true);
             issuer = new IssuerData(keyPair.getPrivate(), subjectDN, subject.getPublicKey(), subject.getSerialNumber());
@@ -132,7 +138,6 @@ public class CertificateServiceImpl implements CertificateService {
         this.certificateStorage.storeCertificateChan(new X509Certificate[]{certificate}, keyPair.getPrivate());
 
         /* Create distribution here */
-
         String[] filePathsOfDistributionFiles = this.certificateStorage.storeCertificateDistributionFiles(
                 new X509Certificate[]{certificate},
                 keyPair.getPrivate(),
@@ -143,7 +148,7 @@ public class CertificateServiceImpl implements CertificateService {
                 subject.getSerialNumber().toString(),
                 type.toString(),
                 certificate.getIssuerDN().toString(),
-                certificate.getIssuerDN().toString(),
+                certificate.getSubjectDN().toString(),
                 type != CertificateType.USER,
                 filePathsOfDistributionFiles[0],
                 filePathsOfDistributionFiles[1],
@@ -168,12 +173,6 @@ public class CertificateServiceImpl implements CertificateService {
         }
         if (!subjectDTO.getOrganization().isEmpty()) {
             nameBuilder.addRDN(BCStyle.O, subjectDTO.getOrganization());
-        }
-        if (!subjectDTO.getLocality().isEmpty()) {
-            nameBuilder.addRDN(BCStyle.L, subjectDTO.getLocality());
-        }
-        if (!subjectDTO.getState().isEmpty()) {
-            nameBuilder.addRDN(BCStyle.ST, subjectDTO.getState());
         }
         if (!subjectDTO.getCountry().isEmpty()) {
             nameBuilder.addRDN(BCStyle.C, subjectDTO.getCountry());
@@ -273,7 +272,7 @@ public class CertificateServiceImpl implements CertificateService {
 
         for (Certificate c : certs) {
             if (c.getSubject().equals(c.getIssuer())) {
-                TreeItem ti = new TreeItem(c.getId(), c.getSubject());
+                TreeItem ti = new TreeItem(c.getId(), c);
                 forest.add(ti);
             } else {
                 this.addToForest(c, forest);
@@ -289,8 +288,8 @@ public class CertificateServiceImpl implements CertificateService {
         }
 
         for (TreeItem ti : forest) {
-            if (ti.getName().equals(cert.getIssuer())) {
-                TreeItem treeToAdd = new TreeItem(cert.getId(), cert.getSubject());
+            if (ti.getCertificate().getSubject().equals(cert.getIssuer())) {
+                TreeItem treeToAdd = new TreeItem(cert.getId(), cert);
                 ti.getChildren().add(treeToAdd);
             } else {
                 addToForest(cert, ti.getChildren());

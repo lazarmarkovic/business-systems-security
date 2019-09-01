@@ -1,6 +1,7 @@
 package com.businesssystemssecurity.proj.web.controller;
 
 import com.businesssystemssecurity.proj.domain.Certificate;
+import com.businesssystemssecurity.proj.domain.helper.CertificateType;
 import com.businesssystemssecurity.proj.exception.PKIMalfunctionException;
 import com.businesssystemssecurity.proj.service.CertificateService;
 import com.businesssystemssecurity.proj.web.dto.certificate.CertificateDTO;
@@ -37,16 +38,15 @@ public class CertificateController {
                 HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{id}/zip",
+    @RequestMapping(value = "/{serialNumber}/zip",
             method = RequestMethod.GET,
             produces="application/zip")
     @PreAuthorize("hasAuthority('admin')")
-    public byte[] getZip(HttpServletResponse response, @PathVariable int id) {
+    public byte[] getZip(HttpServletResponse response, @PathVariable String serialNumber) {
         response.setStatus(HttpServletResponse.SC_OK);
         response.addHeader("Content-Disposition", "attachment; filename=\"test.zip\"");
 
-        Certificate c = certificateService.findById(id);
-
+        Certificate c = certificateService.findBySerialNumber(serialNumber);
         try {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(byteArrayOutputStream);
@@ -109,10 +109,17 @@ public class CertificateController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('admin')")
     public ResponseEntity<CertificateDTO> generate(@RequestBody CertificateRequestDTO request) {
+
+        String serialNumber = "";
+        if (request.getCertificateType() != CertificateType.ROOT) {
+            Certificate issuer = this.certificateService.findBySubjectName(request.getIssuerName());
+            serialNumber = issuer.getSerialNumber();
+        }
         Certificate c = certificateService.createCertificate(
                 request.getSubjectDTO(),
-                request.getIssuerSerialNumber(),
-                request.getCertificateType());
+                serialNumber,
+                request.getCertificateType()
+        );
 
         return new ResponseEntity<>(new CertificateDTO(c), HttpStatus.OK);
     }

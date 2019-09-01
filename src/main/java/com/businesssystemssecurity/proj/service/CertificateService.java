@@ -13,6 +13,8 @@ public interface CertificateService {
 
     Certificate findBySerialNumber(String serialNumber);
 
+    Certificate findBySubjectName(String subjectName);
+
     ArrayList<Certificate> findAll();
 
     ArrayList<TreeItem> getTree();

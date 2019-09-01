@@ -72,7 +72,7 @@ public class RestClientConfig {
                 }
             }
 
-            KeyStore trustStore = KeyStore.getInstance("PKCS12");
+            KeyStore trustStore = KeyStore.getInstance(this.truststoreType);
             trustStore.load(truststore.getInputStream(), truststorePassword.toCharArray());
 
 
@@ -153,7 +153,7 @@ public class RestClientConfig {
 
             KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
 
-            KeyStore keyStore = KeyStore.getInstance("PKCS12");
+            KeyStore keyStore = KeyStore.getInstance(this.truststoreType);
             keyStore.load(keystore.getInputStream(), keystorePassword.toCharArray());
 
             kmf.init(keyStore, keystorePassword.toCharArray());
