@@ -143,8 +143,7 @@ public class CertificateServiceImpl implements CertificateService {
 
         /* Create distribution here */
         String[] filePathsOfDistributionFiles = this.certificateStorage.storeCertificateDistributionFiles(
-                new X509Certificate[]{certificate},
-                keyPair.getPrivate(),
+                certificate.getSerialNumber().toString(),
                 type
         );
 
@@ -166,8 +165,7 @@ public class CertificateServiceImpl implements CertificateService {
 //        Path pathToKeyStore = Paths.get("src", "main", "resources", "keystore", "TheKeyStore.p12");
 //        CertificatesAndKeyHolder ckh = this.certificateStorage.getPrivateKeyAndChain(
 //                pathToKeyStore.toString(),
-//                certificate.getSerialNumber().toString(),
-//                keyStorePassword
+//                certificate.getSerialNumber().toString()
 //        );
 //
 //

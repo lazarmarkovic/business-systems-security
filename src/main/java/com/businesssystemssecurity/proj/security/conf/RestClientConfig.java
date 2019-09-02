@@ -3,6 +3,7 @@ package com.businesssystemssecurity.proj.security.conf;
 import org.apache.http.client.HttpClient;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContexts;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -52,12 +53,12 @@ public class RestClientConfig {
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate(new HttpComponentsClientHttpRequestFactory(
-                httpClient(keystore, keystorePassword, truststore, truststorePassword)));
+                httpClient(keystore, keystorePassword, truststore, truststorePassword, applicationKeyAlias)));
     }
 
     @Bean
     public HttpClient httpClient(Resource keystore, String keystorePassword, Resource truststore,
-                                 String truststorePassword) {
+                                 String truststorePassword, String alias) {
         try {
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             // Using null here initialises the TMF with the default trust store.
@@ -158,8 +159,12 @@ public class RestClientConfig {
 
             kmf.init(keyStore, keystorePassword.toCharArray());
 
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, new TrustManager[] { customTm }, null);
+            SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(trustStore, null)
+                    .loadKeyMaterial(keyStore, keystorePassword.toCharArray(), (aliases, socket) -> alias)
+                    .build();
+
+           // SSLContext sslContext = SSLContext.getInstance("TLS");
+            //sslContext.init(null, new TrustManager[] { customTm }, null);
             SSLConnectionSocketFactory sslFactory = new SSLConnectionSocketFactory(sslContext, new String[]{"TLSv1.2"},
                     null, SSLConnectionSocketFactory.getDefaultHostnameVerifier());
 

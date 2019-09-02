@@ -20,25 +20,25 @@ public class SSLEventCreator {
     @Autowired
     private RestTemplate restTemplate;
 
-//    @Async
-//    @Scheduled(fixedDelay = 1000 * 7)
-//    public void create() {
-//        try {
-//            String responseFromSub = restTemplate.getForObject("https://localhost:8444/api/testSSL/receiveFromSub", String.class);
-//            System.out.println("----> Response from sub: " + responseFromSub);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            System.out.println("Fatal error.");
-//        }
-//    }
+    @Async
+    @Scheduled(fixedDelay = 1000 * 7)
+    public void create() {
+        try {
+            String responseFromSub = restTemplate.getForObject("https://localhost:8444/api/testSSL/receiveFromSub", String.class);
+            System.out.println("----> Response from sub: " + responseFromSub);
+        } catch (Exception e) {
+            //e.printStackTrace();
+            System.out.println("Fatal error.");
+        }
+    }
 
 //    @EventListener
 //    public void onApplicationEvent(ContextRefreshedEvent event) {
 //        try {
-//            String responseFromSub = restTemplate.getForObject("https://localhost:8443/api/testSSL/receiveFromSub", String.class);
+//            String responseFromSub = restTemplate.getForObject("https://localhost:8444/api/testSSL/receiveFromSub", String.class);
 //            System.out.println("----> Response from sub: " + responseFromSub);
 //        } catch (Exception e) {
-//            e.printStackTrace();
+//            //e.printStackTrace();
 //            System.out.println("Fatal error.");
 //        }
 //    }
