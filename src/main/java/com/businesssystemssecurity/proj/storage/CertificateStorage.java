@@ -27,6 +27,9 @@ public class CertificateStorage {
     @Value( "${pki.key-store-password}" )
     private char[] keyStorePassword;
 
+    @Value( "${pki.trust-store-password}" )
+    private char[] trustStorePassword;
+
     @Value("${pki.keystore-filename}")
     private String keyStoreFileName;
 
@@ -153,7 +156,7 @@ public class CertificateStorage {
             KeyStore keyStore = KeyStore.getInstance("PKCS12");
 
             keyStore.load(new FileInputStream(storePath), password);
-            Key key = keyStore.getKey(certAlias, password);
+            Key key = keyStore.getKey(certAlias, certAlias.toCharArray());
 
             if (key instanceof PrivateKey) {
                 Certificate[] certificates = keyStore.getCertificateChain(certAlias);
@@ -202,6 +205,37 @@ public class CertificateStorage {
                 UnrecoverableKeyException e) {
             e.printStackTrace();
             throw new PKIMalfunctionException("Error while assembling issuer data from certificate serial number.");
+        }
+    }
+
+    /* Test certificate extraction from TheKeyStore into the another keystore */
+
+    public void createKeyStoreTest(Path path, X509Certificate[] chain, PrivateKey privateKey) {
+        String alias = chain[0].getSerialNumber().toString();
+        char[] password = this.keyStorePassword;
+        try {
+            KeyStore keyStore = KeyStore.getInstance("PKCS12");
+            keyStore.load(null, null);
+
+            keyStore.setKeyEntry(alias, privateKey, password, chain);
+            keyStore.store(new FileOutputStream(path.toString()), password);
+        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException e) {
+            e.printStackTrace();
+            throw new PKIMalfunctionException("Error in creating key store - test.");
+        }
+    }
+
+    public void createTrustStoreTest(Path path, X509Certificate cert) {
+        char[] password = this.trustStorePassword;
+        try {
+            KeyStore trustStore = KeyStore.getInstance("PKCS12");
+            trustStore.load(null, null);
+
+            trustStore.setCertificateEntry(cert.getSerialNumber().toString(), cert);
+            trustStore.store(new FileOutputStream(path.toString()), password);
+        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException e) {
+            e.printStackTrace();
+            throw new PKIMalfunctionException("Error in creating trust store - test.");
         }
     }
 }

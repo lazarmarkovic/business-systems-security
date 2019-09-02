@@ -2,6 +2,7 @@ package com.businesssystemssecurity.proj.service;
 
 import com.businesssystemssecurity.proj.domain.Certificate;
 import com.businesssystemssecurity.proj.domain.helper.CertificateType;
+import com.businesssystemssecurity.proj.domain.helper.CertificatesAndKeyHolder;
 import com.businesssystemssecurity.proj.domain.helper.IssuerData;
 import com.businesssystemssecurity.proj.domain.helper.SubjectData;
 import com.businesssystemssecurity.proj.exception.EntityNotFoundException;
@@ -29,10 +30,13 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import sun.security.x509.SubjectAlternativeNameExtension;
 
 
 import javax.transaction.Transactional;
 import java.math.BigInteger;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -158,6 +162,28 @@ public class CertificateServiceImpl implements CertificateService {
                 null
         );
 
+//        /* Test their method */
+//        Path pathToKeyStore = Paths.get("src", "main", "resources", "keystore", "TheKeyStore.p12");
+//        CertificatesAndKeyHolder ckh = this.certificateStorage.getPrivateKeyAndChain(
+//                pathToKeyStore.toString(),
+//                certificate.getSerialNumber().toString(),
+//                keyStorePassword
+//        );
+//
+//
+//        Path pathToTestKeyStore = Paths.get("src", "main", "resources", "keystore", "TESTKeyStoreSUB.p12");
+//        Path pathToTestTrustStore = Paths.get("src", "main", "resources", "keystore", "TESTTrustStoreSUB.p12");
+//        this.certificateStorage.createKeyStoreTest(
+//                pathToTestKeyStore,
+//                ckh.getChain(),
+//                ckh.getPrivateKey()
+//        );
+//
+//        this.certificateStorage.createTrustStoreTest(
+//                pathToTestTrustStore,
+//                ckh.getChain()[0]
+//        );
+
         certificateRepository.save(c);
         return c;
     }
@@ -206,6 +232,11 @@ public class CertificateServiceImpl implements CertificateService {
             SubjectKeyIdentifier subjectKeyIdentifier = extensionUtils
                     .createSubjectKeyIdentifier(subjectData.getPublicKey());
             v3CertGen.addExtension(new ASN1ObjectIdentifier("2.5.29.14"), false, subjectKeyIdentifier);
+
+            /* Add subject alternative name */
+            GeneralName altName = new GeneralName(GeneralName.dNSName, "localhost");
+            GeneralNames subjectAltName = new GeneralNames(altName);
+            v3CertGen.addExtension(X509Extensions.SubjectAlternativeName, false, subjectAltName);
 
             /* Add OCSP response server data */
             //addAuthorityInformationAccess(issuerData.getX500name().toString(), v3CertGen);
