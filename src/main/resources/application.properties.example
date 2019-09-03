@@ -1,11 +1,53 @@
-# Environment config file
-
 spring.profiles.active=dev
 
-spring.application.name=App name
+spring.application.name=Business systems security
 
 spring.jackson.serialization.write_dates_as_timestamps=true
 
 
-spring.mvc.view.prefix = /views/
-spring.mvc.view.suffix = .html
+#SSL configuration
+
+# For jks
+#server.ssl.key-store-type=JKS
+#server.ssl.key-store=classpath:keystore/keyStore.jks
+#server.ssl.key-store-password=password
+#server.ssl.key-alias=megatravel
+#
+#server.ssl.trust-store-type=JKS
+#server.ssl.trust-store=classpath:keystore/trustStore.jks
+#server.ssl.trust-store-password=password
+#server.ssl.trust-alias=megatravel
+
+# For p12
+server.ssl.key-store-type=PKCS12
+server.ssl.key-store=classpath:keystore/TheKeyStore.p12
+server.ssl.key-store-password=password
+server.ssl.key-alias=1567435695065
+
+server.ssl.trust-store-type=PKCS12
+server.ssl.trust-store=classpath:keystore/trustStore.p12
+server.ssl.trust-store-password=password
+server.ssl.trust-alias=1567435695065
+
+server.ssl.enabled=true
+server.ssl.client-auth=need
+server.port=8443
+
+
+# PKI configuration
+pki.key-store-password=password
+pki.trust-store-password=password
+
+pki.certificate.provider=BC
+pki.algorithm.signature=SHA256WithRSAEncryption
+pki.algorithm.key=RSA
+pki.seed.algorithm=SHA1PRNG
+pki.seed.provider=SUN
+
+pki.ca.keysize=4096
+pki.user.keysize=2048
+
+pki.ocsp.responder-server-url=http://localhost:8085/verify/
+pki.aia-path=/cert
+
+pki.keystore-filename=TheKeyStore.p12
