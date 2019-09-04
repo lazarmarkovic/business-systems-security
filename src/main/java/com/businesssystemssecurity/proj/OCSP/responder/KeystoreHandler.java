@@ -68,8 +68,8 @@ public class KeystoreHandler {
     Certificate getMCCertificate(String alias) {
         KeyStore keystore;
         try {
-            keystore = KeyStore.getInstance(this.signingCATrustStoreType);
-            keystore.load(this.signingCATrustStoreResource.getInputStream(), this.signingCATrustStorePassword);
+            keystore = KeyStore.getInstance(this.signingCAKeyStoreType);
+            keystore.load(this.signingCAKeyStoreResource.getInputStream(), this.signingCAKeyStorePassword);
             return keystore.getCertificate(alias);
 
         } catch (NoSuchAlgorithmException |

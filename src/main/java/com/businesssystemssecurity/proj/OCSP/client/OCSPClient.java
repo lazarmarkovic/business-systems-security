@@ -28,6 +28,8 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import org.bouncycastle.x509.extension.X509ExtensionUtil;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
@@ -36,6 +38,9 @@ import java.io.InputStream;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
@@ -45,7 +50,15 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Optional;
 
+
 public class OCSPClient {
+
+    @Value("${pki.ocsp-responder.truststore.resource}")
+    private Resource signingCATrustStoreResource;
+    @Value("${pki.ocsp-responder.truststore.password}")
+    private char[] signingCATrustStorePassword;
+    @Value("${pki.ocsp-responder.truststore.type}")
+    private String signingCATrustStoreType;
 
     private static byte[] sentNonce;
     private final X509Certificate issuer;

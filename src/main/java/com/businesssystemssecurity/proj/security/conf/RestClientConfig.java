@@ -1,5 +1,7 @@
 package com.businesssystemssecurity.proj.security.conf;
 
+import com.businesssystemssecurity.proj.OCSP.client.OCSPClient;
+import com.businesssystemssecurity.proj.exception.PKIMalfunctionException;
 import org.apache.catalina.Context;
 import org.apache.catalina.connector.Connector;
 import org.apache.http.client.HttpClient;
@@ -19,6 +21,7 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.net.ssl.*;
 import java.security.KeyStore;
+import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -38,7 +41,7 @@ public class RestClientConfig {
 
     /** Application keystore password. */
     @Value("${server.ssl.key-store-password}")
-    private String keystorePassword;
+    private char[] keystorePassword;
 
     /** Keystore alias for application client credential. */
     @Value("${server.ssl.key-alias}")
@@ -54,7 +57,7 @@ public class RestClientConfig {
 
     /** Application truststore password. */
     @Value("${server.ssl.trust-store-password}")
-    private String truststorePassword;
+    private char[] truststorePassword;
 
     /* Config for regular HTTP protocol */
     @Value("${server.http.port}")
@@ -93,79 +96,69 @@ public class RestClientConfig {
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate(new HttpComponentsClientHttpRequestFactory(
-                httpClient(keystore, keystorePassword, truststore, truststorePassword, applicationKeyAlias)));
+                httpClient(keystore, keystorePassword, truststore, truststorePassword)));
     }
 
     @Bean
-    public HttpClient httpClient(Resource keystore, String keystorePassword, Resource truststore,
-                                 String truststorePassword, String alias) {
+    public HttpClient httpClient(Resource keystore, char[] keystorePassword,
+                                 Resource truststore, char[] truststorePassword) {
         try {
             TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             // Using null here initialises the TMF with the default trust store.
             tmf.init((KeyStore) null);
 
-            // Get hold of the default trust manager
-            X509TrustManager defaultTm = null;
-            for (TrustManager tm : tmf.getTrustManagers()) {
-                if (tm instanceof X509TrustManager) {
-                    defaultTm = (X509TrustManager) tm;
-                    break;
-                }
-            }
-
+            /* Load trust store */
             KeyStore trustStore = KeyStore.getInstance(this.truststoreType);
-            trustStore.load(truststore.getInputStream(), truststorePassword.toCharArray());
+            trustStore.load(truststore.getInputStream(), this.truststorePassword);
 
 
             tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             tmf.init(trustStore);
 
             // Get hold of the default trust manager
-            X509TrustManager myTm = null;
+            X509TrustManager x509TrustManager = null;
             for (TrustManager tm : tmf.getTrustManagers()) {
                 if (tm instanceof X509TrustManager) {
-                    myTm = (X509TrustManager) tm;
+                    x509TrustManager = (X509TrustManager) tm;
                     break;
                 }
             }
 
-            // Wrap it in your own class.
-            final X509TrustManager finalDefaultTm = defaultTm;
-            final X509TrustManager finalMyTm = myTm;
+
+            final X509TrustManager finalMyTm = x509TrustManager;
             X509TrustManager customTm = new X509TrustManager() {
                 @Override
                 public X509Certificate[] getAcceptedIssuers() {
-                    // If you're planning to use client-cert auth,
-                    // merge results from "defaultTm" and "myTm".
-                    if (finalMyTm != null && finalDefaultTm != null) {
-                        return Stream.concat(
-                                Arrays.stream(finalMyTm.getAcceptedIssuers()),
-                                Arrays.stream(finalDefaultTm.getAcceptedIssuers())
-                        ).toArray(X509Certificate[]::new);
+                    if (finalMyTm != null) {
+                        return finalMyTm.getAcceptedIssuers();
+                    } else {
+                        throw new PKIMalfunctionException("Error. No trusted certificates.");
                     }
-                    return new X509Certificate[] {};
                 }
 
                 @Override
                 public void checkServerTrusted(X509Certificate[] chain,
                                                String authType) throws CertificateException {
 
-                    System.out.println("Checking server.");
+                    System.out.println("Checking server certificate trust.");
 
                     try {
                         if (finalMyTm != null) {
                             finalMyTm.checkServerTrusted(chain, authType);
                         } else {
-                            throw new CertificateException();
+                            throw new PKIMalfunctionException("Error. No trusted certificates.");
                         }
                     } catch (CertificateException e) {
-                        // This will throw another CertificateException if this fails too.
-                        if (finalDefaultTm != null) {
-                            finalDefaultTm.checkServerTrusted(chain, authType);
-                        } else {
                             throw new CertificateException();
-                        }
                     }
+
+                    System.out.println("Done.");
+                    System.out.println("Checking server certificate validity (OCSP).");
+
+                    for (int i=0; i<chain.length; i++) {
+                        System.out.println("CERT: " + chain[i].getSubjectDN().toString());
+                    }
+
                 }
 
                 @Override
@@ -174,37 +167,51 @@ public class RestClientConfig {
                     // If you're planning to use client-cert auth,
                     // do the same as checking the server.
 
-                    System.out.println("Checking client.");
+                    System.out.println("Checking client certificate trust.");
                     try {
                         if (finalMyTm != null) {
-                            finalMyTm.checkServerTrusted(chain, authType);
+                            finalMyTm.checkClientTrusted(chain, authType);
                         } else {
                             throw new CertificateException();
                         }
                     } catch (CertificateException e) {
-                        // This will throw another CertificateException if this fails too.
-                        if (finalDefaultTm != null) {
-                            finalDefaultTm.checkServerTrusted(chain, authType);
-                        } else {
                             throw new CertificateException();
-                        }
                     }
+
+                    System.out.println("Done.");
+                    System.out.println("Checking server certificate validity (OCSP).");
+
+                    for (int i=0; i<chain.length; i++) {
+                        System.out.println("CERT: " + chain[i].getSubjectDN().toString());
+                    }
+
+                    OCSPClient ocspClient = null;
+                    if (chain.length == 1) {
+                        ocspClient= new OCSPClient(chain[0], chain[0]);
+                    } else if (chain.length > 1) {
+                        ocspClient= new OCSPClient(chain[1], chain[0]);
+                    } else {
+                        throw new CertificateException("No certificate.");
+                    }
+
+
+
                 }
             };
 
             KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            KeyStore keyStore = KeyStore.getInstance(this.keystoreType);
+            keyStore.load(this.keystore.getInputStream(), this.keystorePassword);
+            kmf.init(keyStore, this.keystorePassword);
 
-            KeyStore keyStore = KeyStore.getInstance(this.truststoreType);
-            keyStore.load(keystore.getInputStream(), keystorePassword.toCharArray());
 
-            kmf.init(keyStore, keystorePassword.toCharArray());
+//            SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(trustStore, null)
+//                    .loadKeyMaterial(keyStore, keystorePassword.toCharArray(), (aliases, socket) -> alias)
+//                    .build();
 
-            SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(trustStore, null)
-                    .loadKeyMaterial(keyStore, keystorePassword.toCharArray(), (aliases, socket) -> alias)
-                    .build();
 
-           // SSLContext sslContext = SSLContext.getInstance("TLS");
-            //sslContext.init(null, new TrustManager[] { customTm }, null);
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(kmf.getKeyManagers(), new TrustManager[] { customTm }, new SecureRandom());
             SSLConnectionSocketFactory sslFactory = new SSLConnectionSocketFactory(sslContext, new String[]{"TLSv1.2"},
                     null, SSLConnectionSocketFactory.getDefaultHostnameVerifier());
 

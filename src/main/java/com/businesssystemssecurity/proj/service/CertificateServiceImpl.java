@@ -75,9 +75,6 @@ public class CertificateServiceImpl implements CertificateService {
     @Value("${pki.ocsp.responder-server-url}")
     private String OCSPResponderServerURL;
 
-    @Value("${pki.aia-path}")
-    private String AIAPath;
-
     @Value("${pki.ca.keysize}")
     private int caKeySize;
 
@@ -238,7 +235,7 @@ public class CertificateServiceImpl implements CertificateService {
             v3CertGen.addExtension(X509Extensions.SubjectAlternativeName, false, subjectAltName);
 
             /* Add OCSP response server data */
-            // addAuthorityInformationAccess(issuerData.getSerialNumber().toString(), v3CertGen);
+            addAuthorityInformationAccess(issuerData.getSerialNumber().toString(), v3CertGen);
 
             return new JcaX509CertificateConverter()
                     .setProvider(this.provider)
@@ -259,7 +256,7 @@ public class CertificateServiceImpl implements CertificateService {
                 AccessDescription.id_ad_caIssuers,
                 new GeneralName(
                         GeneralName.uniformResourceIdentifier,
-                        new DERIA5String(this.OCSPResponderServerURL + issuerAlias + this.AIAPath)
+                        new DERIA5String(this.OCSPResponderServerURL + issuerAlias)
                 )
         );
         ASN1EncodableVector aia_ASN = new ASN1EncodableVector();
