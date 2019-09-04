@@ -149,6 +149,7 @@ public class CertificateServiceImpl implements CertificateService {
 
         Certificate c = new Certificate(
                 subject.getSerialNumber().toString(),
+                issuer.getSerialNumber().toString(),
                 type.toString(),
                 certificate.getIssuerDN().toString(),
                 certificate.getSubjectDN().toString(),
@@ -237,7 +238,7 @@ public class CertificateServiceImpl implements CertificateService {
             v3CertGen.addExtension(X509Extensions.SubjectAlternativeName, false, subjectAltName);
 
             /* Add OCSP response server data */
-            //addAuthorityInformationAccess(issuerData.getX500name().toString(), v3CertGen);
+            // addAuthorityInformationAccess(issuerData.getSerialNumber().toString(), v3CertGen);
 
             return new JcaX509CertificateConverter()
                     .setProvider(this.provider)
@@ -253,12 +254,12 @@ public class CertificateServiceImpl implements CertificateService {
         }
     }
 
-    private void addAuthorityInformationAccess(String issuerName, X509v3CertificateBuilder v3CertGen) throws CertIOException {
+    private void addAuthorityInformationAccess(String issuerAlias, X509v3CertificateBuilder v3CertGen) throws CertIOException {
         AccessDescription caIssuers = new AccessDescription(
                 AccessDescription.id_ad_caIssuers,
                 new GeneralName(
                         GeneralName.uniformResourceIdentifier,
-                        new DERIA5String(this.OCSPResponderServerURL + issuerName + this.AIAPath)
+                        new DERIA5String(this.OCSPResponderServerURL + issuerAlias + this.AIAPath)
                 )
         );
         ASN1EncodableVector aia_ASN = new ASN1EncodableVector();

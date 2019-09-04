@@ -7,6 +7,7 @@ import java.util.Date;
 public class CertificateDTO {
     private long id;
     private String serialNumber;
+    private String caSerialNumber;
     private String issuer;
     private String subject;
     private Boolean CA;
@@ -20,6 +21,7 @@ public class CertificateDTO {
     public CertificateDTO(Certificate c) {
         this.id = c.getId();
         this.serialNumber = c.getSerialNumber();
+        this.caSerialNumber = c.getCaSerialNumber();
         this.issuer = c.getIssuer();
         this.subject = c.getSubject();
         this.CA = c.getCA();
@@ -29,9 +31,10 @@ public class CertificateDTO {
 
     }
 
-    public CertificateDTO(long id, String serialNumber, String issuer, String subject, Boolean CA, Boolean revoked, java.util.Date revokedAt, String revokeReason) {
+    public CertificateDTO(long id, String serialNumber, String caSerialNumber, String issuer, String subject, Boolean CA, Boolean revoked, java.util.Date revokedAt, String revokeReason) {
         this.id = id;
         this.serialNumber = serialNumber;
+        this.caSerialNumber = caSerialNumber;
         this.issuer = issuer;
         this.subject = subject;
         this.CA = CA;
@@ -55,6 +58,14 @@ public class CertificateDTO {
 
     public void setSerialNumber(String serialNumber) {
         this.serialNumber = serialNumber;
+    }
+
+    public String getCaSerialNumber() {
+        return caSerialNumber;
+    }
+
+    public void setCaSerialNumber(String caSerialNumber) {
+        this.caSerialNumber = caSerialNumber;
     }
 
     public String getIssuer() {

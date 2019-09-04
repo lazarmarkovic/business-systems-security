@@ -15,6 +15,9 @@ public class Certificate {
     @Column(name="serial_number", nullable = false, unique = true)
     private String serialNumber;
 
+    @Column(name="ca_serial_number", nullable = false, unique = true)
+    private String caSerialNumber;
+
     @Column(name="type", nullable = true)
     private String type;
 
@@ -49,6 +52,7 @@ public class Certificate {
     public Certificate() {}
 
     public Certificate(String serialNumber,
+                       String caSerialNumber,
                        String type,
                        String issuer,
                        String subject,
@@ -61,6 +65,7 @@ public class Certificate {
                        String revokeReason)
     {
         this.serialNumber = serialNumber;
+        this.caSerialNumber = caSerialNumber;
         this.type = type;
         this.issuer = issuer;
         this.subject = subject;
@@ -87,6 +92,14 @@ public class Certificate {
 
     public void setSerialNumber(String serialNumber) {
         this.serialNumber = serialNumber;
+    }
+
+    public String getCaSerialNumber() {
+        return caSerialNumber;
+    }
+
+    public void setCaSerialNumber(String caSerialNumber) {
+        this.caSerialNumber = caSerialNumber;
     }
 
     public String getType() {

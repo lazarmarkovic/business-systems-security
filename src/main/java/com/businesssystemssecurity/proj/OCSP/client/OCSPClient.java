@@ -1,4 +1,4 @@
-package com.businesssystemssecurity.proj.OCSP;
+package com.businesssystemssecurity.proj.OCSP.client;
 
 
 import net.maritimecloud.pki.PKIConstants;
