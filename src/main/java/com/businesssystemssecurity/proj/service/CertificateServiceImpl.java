@@ -235,7 +235,9 @@ public class CertificateServiceImpl implements CertificateService {
             v3CertGen.addExtension(X509Extensions.SubjectAlternativeName, false, subjectAltName);
 
             /* Add OCSP response server data */
-            addAuthorityInformationAccess(issuerData.getSerialNumber().toString(), v3CertGen);
+            GeneralName ocspName = new GeneralName(GeneralName.uniformResourceIdentifier, this.OCSPResponderServerURL + issuerData.getSerialNumber().toString());
+            AuthorityInformationAccess authorityInformationAccess = new AuthorityInformationAccess(X509ObjectIdentifiers.ocspAccessMethod, ocspName);
+            v3CertGen.addExtension(Extension.authorityInfoAccess, false, authorityInformationAccess);
 
             return new JcaX509CertificateConverter()
                     .setProvider(this.provider)
@@ -249,19 +251,6 @@ public class CertificateServiceImpl implements CertificateService {
             e.printStackTrace();
             throw new PKIMalfunctionException("Error while generating new certificate.");
         }
-    }
-
-    private void addAuthorityInformationAccess(String issuerAlias, X509v3CertificateBuilder v3CertGen) throws CertIOException {
-        AccessDescription caIssuers = new AccessDescription(
-                AccessDescription.id_ad_caIssuers,
-                new GeneralName(
-                        GeneralName.uniformResourceIdentifier,
-                        new DERIA5String(this.OCSPResponderServerURL + issuerAlias)
-                )
-        );
-        ASN1EncodableVector aia_ASN = new ASN1EncodableVector();
-        aia_ASN.add(caIssuers);
-        v3CertGen.addExtension(Extension.authorityInfoAccess, false, new DERSequence(aia_ASN));
     }
 
     private SubjectData generateSubjectData(PublicKey publicKey, X500Name subjectDN, boolean isCA) {

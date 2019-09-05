@@ -1,6 +1,8 @@
 package com.businesssystemssecurity.proj.security.conf;
 
+import com.businesssystemssecurity.proj.OCSP.client.CertStatus;
 import com.businesssystemssecurity.proj.OCSP.client.OCSPClient;
+import com.businesssystemssecurity.proj.OCSP.client.OCSPValidationException;
 import com.businesssystemssecurity.proj.exception.PKIMalfunctionException;
 import org.apache.catalina.Context;
 import org.apache.catalina.connector.Connector;
@@ -136,6 +138,38 @@ public class RestClientConfig {
                     }
                 }
 
+                public void validateCertificateChain(X509Certificate[] chain) throws CertificateException {
+
+                    System.out.println("\nList certificate chain:");
+                    for (int i=0; i<chain.length; i++) {
+                        System.out.println("CERT: " + chain[i].getSubjectDN().toString());
+                    }
+
+                    OCSPClient ocspClient = null;
+                    if (chain.length == 1) {
+                        ocspClient= new OCSPClient(chain[0], chain[0]);
+                    } else if (chain.length > 1) {
+                        ocspClient= new OCSPClient(chain[1], chain[0]);
+                    } else {
+                        throw new CertificateException("No certificate.");
+                    }
+
+                    try {
+                        CertStatus certStatus = ocspClient.getCertificateStatus();
+                        if (certStatus == CertStatus.GOOD) {
+                            System.out.println("Certificate is OK!");
+                        } else if (certStatus == CertStatus.REVOKED) {
+                            System.out.println("Certificate is REVOKED.");
+                            throw new CertificateException("Certificate is REVOKED!");
+                        } else {
+                            System.out.println("Certificate state is UNKNOWN.");
+                            throw new CertificateException("Certificate state is UNKNOWN!");
+                        }
+                    } catch (OCSPValidationException e) {
+                        e.printStackTrace();
+                    }
+                }
+
                 @Override
                 public void checkServerTrusted(X509Certificate[] chain,
                                                String authType) throws CertificateException {
@@ -149,15 +183,14 @@ public class RestClientConfig {
                             throw new PKIMalfunctionException("Error. No trusted certificates.");
                         }
                     } catch (CertificateException e) {
-                            throw new CertificateException();
+                            throw new CertificateException("Server check failed");
                     }
 
                     System.out.println("Done.");
                     System.out.println("Checking server certificate validity (OCSP).");
 
-                    for (int i=0; i<chain.length; i++) {
-                        System.out.println("CERT: " + chain[i].getSubjectDN().toString());
-                    }
+                    // OCSP validation
+                    this.validateCertificateChain(chain);
 
                 }
 
@@ -172,30 +205,17 @@ public class RestClientConfig {
                         if (finalMyTm != null) {
                             finalMyTm.checkClientTrusted(chain, authType);
                         } else {
-                            throw new CertificateException();
+                            throw new PKIMalfunctionException("Error. No trusted certificates.");
                         }
                     } catch (CertificateException e) {
-                            throw new CertificateException();
+                            throw new CertificateException("Client check failed");
                     }
 
                     System.out.println("Done.");
-                    System.out.println("Checking server certificate validity (OCSP).");
+                    System.out.println("Checking client certificate validity (OCSP).");
 
-                    for (int i=0; i<chain.length; i++) {
-                        System.out.println("CERT: " + chain[i].getSubjectDN().toString());
-                    }
-
-                    OCSPClient ocspClient = null;
-                    if (chain.length == 1) {
-                        ocspClient= new OCSPClient(chain[0], chain[0]);
-                    } else if (chain.length > 1) {
-                        ocspClient= new OCSPClient(chain[1], chain[0]);
-                    } else {
-                        throw new CertificateException("No certificate.");
-                    }
-
-
-
+                    // OCSP validation
+                    //this.validateCertificateChain(chain);
                 }
             };
 

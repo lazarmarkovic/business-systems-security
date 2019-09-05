@@ -14,14 +14,13 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 @EnableScheduling
 @Component
-@EnableAsync
 public class SSLEventCreator {
 
     @Autowired
     private RestTemplate restTemplate;
 
-    @Async
-    @Scheduled(fixedDelay = 1000 * 10)
+
+    @Scheduled(initialDelay = 1000 * 14, fixedDelay = 1000 * 10)
     public void create() {
         try {
             String responseFromSub = restTemplate.getForObject("https://localhost:8444/api/testSSL/receiveFromSub", String.class);

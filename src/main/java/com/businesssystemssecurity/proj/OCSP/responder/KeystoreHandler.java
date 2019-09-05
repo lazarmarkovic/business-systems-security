@@ -45,7 +45,7 @@ public class KeystoreHandler {
     public KeyStore.PrivateKeyEntry getSigningCertEntry(String alias) {
         KeyStore keystore;
         try {
-            keystore = KeyStore.getInstance(KEYSTORE_TYPE);
+            keystore = KeyStore.getInstance(this.signingCAKeyStoreType);
             keystore.load(this.signingCAKeyStoreResource.getInputStream(), this.signingCAKeyStorePassword);
             KeyStore.ProtectionParameter protParam = new KeyStore.PasswordProtection(this.signingCAKeyPassword);
             return (KeyStore.PrivateKeyEntry) keystore.getEntry(alias, protParam);
