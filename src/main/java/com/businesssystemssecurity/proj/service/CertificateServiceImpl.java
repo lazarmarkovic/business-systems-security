@@ -104,6 +104,28 @@ public class CertificateServiceImpl implements CertificateService {
         return (ArrayList<Certificate>) certificateRepository.findAll();
     }
 
+
+    @Override
+    public Certificate revokeCertificate(String serialNumber, String reason) {
+        Certificate certificate = this.findBySerialNumber(serialNumber);
+        certificate.setRevoked(true);
+        certificate.setRevokedAt(new Date());
+        certificate.setRevokeReason(reason);
+
+        this.certificateRepository.save(certificate);
+
+        return certificate;
+    }
+
+    @Override
+    public Certificate unrevokeCertificate(String serialNumber) {
+        Certificate certificate = this.findBySerialNumber(serialNumber);
+        certificate.setRevoked(false);
+        this.certificateRepository.save(certificate);
+
+        return certificate;
+    }
+
     /*-------------------------------------------------------------------------------------------*/
 
     @Override
@@ -183,6 +205,7 @@ public class CertificateServiceImpl implements CertificateService {
         certificateRepository.save(c);
         return c;
     }
+
 
     private X500Name subjectDTOToX500Name(SubjectDTO subjectDTO) {
         X500NameBuilder nameBuilder = new X500NameBuilder();

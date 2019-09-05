@@ -14,31 +14,34 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 @EnableScheduling
 @Component
+@EnableAsync
 public class SSLEventCreator {
 
     @Autowired
     private RestTemplate restTemplate;
 
+    private boolean systemReady = false;
 
-    @Scheduled(initialDelay = 1000 * 14, fixedDelay = 1000 * 10)
+    @Async
+    @Scheduled(initialDelay = 1000 * 5, fixedDelay = 1000 * 10)
     public void create() {
+
+        if (!this.systemReady) {
+            return;
+        }
+
         try {
             String responseFromSub = restTemplate.getForObject("https://localhost:8444/api/testSSL/receiveFromSub", String.class);
             System.out.println("----> Response from sub: " + responseFromSub);
+
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
             System.out.println("Fatal error.");
         }
     }
 
-//    @EventListener
-//    public void onApplicationEvent(ContextRefreshedEvent event) {
-//        try {
-//            String responseFromSub = restTemplate.getForObject("https://localhost:8444/api/testSSL/receiveFromSub", String.class);
-//            System.out.println("----> Response from sub: " + responseFromSub);
-//        } catch (Exception e) {
-//            //e.printStackTrace();
-//            System.out.println("Fatal error.");
-//        }
-//    }
+    @EventListener
+    public void onApplicationEvent(ContextRefreshedEvent event) {
+        this.systemReady = true;
+    }
 }

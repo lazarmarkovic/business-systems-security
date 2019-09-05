@@ -5,7 +5,8 @@ import com.businesssystemssecurity.proj.domain.helper.CertificateType;
 import com.businesssystemssecurity.proj.exception.PKIMalfunctionException;
 import com.businesssystemssecurity.proj.service.CertificateService;
 import com.businesssystemssecurity.proj.web.dto.certificate.CertificateDTO;
-import com.businesssystemssecurity.proj.web.dto.certificate.CertificateRequestDTO;
+import com.businesssystemssecurity.proj.web.dto.certificate.CertificateGenerateRequestDTO;
+import com.businesssystemssecurity.proj.web.dto.certificate.CertificateRevokeRequestDTO;
 import com.businesssystemssecurity.proj.web.dto.tree.TreeItem;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -108,7 +109,7 @@ public class CertificateController {
             method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('admin')")
-    public ResponseEntity<CertificateDTO> generate(@RequestBody CertificateRequestDTO request) {
+    public ResponseEntity<CertificateDTO> generate(@RequestBody CertificateGenerateRequestDTO request) {
 
         String serialNumber = "";
         if (request.getCertificateType() != CertificateType.ROOT) {
@@ -125,16 +126,30 @@ public class CertificateController {
     }
 
 
-    @RequestMapping(value = "/test/validate/{serialNumber}",
-            method = RequestMethod.GET,
+    @RequestMapping(value = "/revoke",
+            method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<CertificateDTO> validate(@PathVariable String serialNumber) {
+    @PreAuthorize("hasAuthority('admin')")
+    public ResponseEntity<CertificateDTO> revoke(@RequestBody CertificateRevokeRequestDTO request) {
 
-        Certificate c = this.certificateService.findBySerialNumber(serialNumber);
+        Certificate c = certificateService.revokeCertificate(
+                request.getSerialNumber(),
+                request.getReason()
+        );
 
         return new ResponseEntity<>(new CertificateDTO(c), HttpStatus.OK);
     }
 
+
+    @RequestMapping(value = "/{serialNumber}/unrevoke",
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAuthority('admin')")
+    public ResponseEntity<CertificateDTO> unrevoke(@PathVariable String serialNumber) {
+
+        Certificate c = certificateService.unrevokeCertificate(serialNumber);
+        return new ResponseEntity<>(new CertificateDTO(c), HttpStatus.OK);
+    }
 
 
 }

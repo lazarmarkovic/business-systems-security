@@ -3,6 +3,7 @@ package com.businesssystemssecurity.proj.security.conf;
 import com.businesssystemssecurity.proj.OCSP.client.CertStatus;
 import com.businesssystemssecurity.proj.OCSP.client.OCSPClient;
 import com.businesssystemssecurity.proj.OCSP.client.OCSPValidationException;
+import com.businesssystemssecurity.proj.OCSP.client.PeriodicOCSPValidator;
 import com.businesssystemssecurity.proj.exception.PKIMalfunctionException;
 import org.apache.catalina.Context;
 import org.apache.catalina.connector.Connector;
@@ -12,6 +13,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.tomcat.util.descriptor.web.SecurityCollection;
 import org.apache.tomcat.util.descriptor.web.SecurityConstraint;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
@@ -67,6 +69,9 @@ public class RestClientConfig {
 
     @Value("${server.http.interface}")
     private String httpInterface;
+
+    @Autowired
+    private PeriodicOCSPValidator periodicOCSPValidator;
 
     @Bean
     public ServletWebServerFactory servletContainer() {
@@ -126,7 +131,6 @@ public class RestClientConfig {
                 }
             }
 
-
             final X509TrustManager finalMyTm = x509TrustManager;
             X509TrustManager customTm = new X509TrustManager() {
                 @Override
@@ -135,38 +139,6 @@ public class RestClientConfig {
                         return finalMyTm.getAcceptedIssuers();
                     } else {
                         throw new PKIMalfunctionException("Error. No trusted certificates.");
-                    }
-                }
-
-                public void validateCertificateChain(X509Certificate[] chain) throws CertificateException {
-
-                    System.out.println("\nList certificate chain:");
-                    for (int i=0; i<chain.length; i++) {
-                        System.out.println("CERT: " + chain[i].getSubjectDN().toString());
-                    }
-
-                    OCSPClient ocspClient = null;
-                    if (chain.length == 1) {
-                        ocspClient= new OCSPClient(chain[0], chain[0]);
-                    } else if (chain.length > 1) {
-                        ocspClient= new OCSPClient(chain[1], chain[0]);
-                    } else {
-                        throw new CertificateException("No certificate.");
-                    }
-
-                    try {
-                        CertStatus certStatus = ocspClient.getCertificateStatus();
-                        if (certStatus == CertStatus.GOOD) {
-                            System.out.println("Certificate is OK!");
-                        } else if (certStatus == CertStatus.REVOKED) {
-                            System.out.println("Certificate is REVOKED.");
-                            throw new CertificateException("Certificate is REVOKED!");
-                        } else {
-                            System.out.println("Certificate state is UNKNOWN.");
-                            throw new CertificateException("Certificate state is UNKNOWN!");
-                        }
-                    } catch (OCSPValidationException e) {
-                        e.printStackTrace();
                     }
                 }
 
@@ -185,13 +157,21 @@ public class RestClientConfig {
                     } catch (CertificateException e) {
                             throw new CertificateException("Server check failed");
                     }
-
                     System.out.println("Done.");
-                    System.out.println("Checking server certificate validity (OCSP).");
 
                     // OCSP validation
-                    this.validateCertificateChain(chain);
-
+                    System.out.println("Checking server certificate validity (OCSP).");
+                    CertStatus certStatus = periodicOCSPValidator.checkCertificateForced(chain);
+                    if (certStatus == CertStatus.GOOD) {
+                        System.out.println("Certificate is OK!");
+                    } else if (certStatus == CertStatus.REVOKED) {
+                        System.out.println("Certificate is REVOKED.");
+                        throw new CertificateException("Certificate is REVOKED!");
+                    } else {
+                        System.out.println("Certificate state is UNKNOWN.");
+                        throw new CertificateException("Certificate state is UNKNOWN!");
+                    }
+                    System.out.println("Done.");
                 }
 
                 @Override
@@ -210,12 +190,21 @@ public class RestClientConfig {
                     } catch (CertificateException e) {
                             throw new CertificateException("Client check failed");
                     }
-
                     System.out.println("Done.");
-                    System.out.println("Checking client certificate validity (OCSP).");
 
                     // OCSP validation
-                    //this.validateCertificateChain(chain);
+                    System.out.println("Checking server certificate validity (OCSP).");
+                    CertStatus certStatus = periodicOCSPValidator.checkCertificateForced(chain);
+                    if (certStatus == CertStatus.GOOD) {
+                        System.out.println("Certificate is OK!");
+                    } else if (certStatus == CertStatus.REVOKED) {
+                        System.out.println("Certificate is REVOKED.");
+                        throw new CertificateException("Certificate is REVOKED!");
+                    } else {
+                        System.out.println("Certificate state is UNKNOWN.");
+                        throw new CertificateException("Certificate state is UNKNOWN!");
+                    }
+                    System.out.println("Done.");
                 }
             };
 

@@ -3,7 +3,7 @@ package com.businesssystemssecurity.proj.web.dto.certificate;
 import com.businesssystemssecurity.proj.domain.helper.CertificateType;
 import com.businesssystemssecurity.proj.web.dto.subject.SubjectDTO;
 
-public class CertificateRequestDTO {
+public class CertificateGenerateRequestDTO {
 
     private String issuerName = "";
 
@@ -15,7 +15,7 @@ public class CertificateRequestDTO {
     private CertificateType certificateType;
 
 
-    public CertificateRequestDTO() {
+    public CertificateGenerateRequestDTO() {
     }
 
     public SubjectDTO getSubjectDTO() {

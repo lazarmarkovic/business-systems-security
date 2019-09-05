@@ -132,9 +132,7 @@ public class OCSPClient {
                 dataOut.flush();
             }
 
-            System.out.println("Send request.");
             InputStream in = (InputStream) httpConnection.getContent();
-            System.out.println("Send request - AFTER");
 
             if (httpConnection.getResponseCode() != HttpURLConnection.HTTP_OK) {
                 throw new OCSPValidationException("Received HTTP code != 200 ["+httpConnection.getResponseCode()+"]");
@@ -142,7 +140,6 @@ public class OCSPClient {
 
             OCSPResp ocspResponse = new OCSPResp(in);
             BasicOCSPResp basicResponse = (BasicOCSPResp) ocspResponse.getResponseObject();
-            System.out.println("Result: " + basicResponse.getResponses()[0].getCertStatus());
 
             byte[] receivedNonce = basicResponse.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce).getExtnId().getEncoded();
             if (!Arrays.equals(receivedNonce, sentNonce)) {
