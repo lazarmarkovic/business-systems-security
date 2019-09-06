@@ -15,6 +15,6 @@ public class SSLConnectionDemonstrationServerController {
 
     @GetMapping("/receiveFromThePKIServer")
     ResponseEntity<String> receiveFromSub() {
-        return new ResponseEntity<>("I AM PKI SERVER.", HttpStatus.OK);
+        return new ResponseEntity<>("I AM THE PKI SERVER.", HttpStatus.OK);
     }
 }

@@ -13,7 +13,7 @@ import java.security.UnrecoverableEntryException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 
-import static net.maritimecloud.pki.PKIConstants.KEYSTORE_TYPE;
+
 
 @Component
 public class KeystoreHandler {

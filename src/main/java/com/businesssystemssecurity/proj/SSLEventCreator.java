@@ -23,7 +23,7 @@ public class SSLEventCreator {
     private boolean systemReady = false;
 
     @Async
-    @Scheduled(initialDelay = 1000 * 5, fixedDelay = 1000 * 10)
+    @Scheduled(initialDelay = 1000 * 5, fixedDelay = 1000 * 7)
     public void create() {
 
         if (!this.systemReady) {
@@ -32,7 +32,7 @@ public class SSLEventCreator {
 
         try {
             String responseFromSub = restTemplate.getForObject("https://localhost:8444/api/testSSL/receiveFromSub", String.class);
-            System.out.println("----> Response from sub: " + responseFromSub);
+            System.out.println("----> Response from TEST SERVER: " + responseFromSub);
 
         } catch (Exception e) {
             //e.printStackTrace();

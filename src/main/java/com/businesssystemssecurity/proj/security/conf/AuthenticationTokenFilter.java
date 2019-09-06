@@ -12,11 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 
 
 import com.businesssystemssecurity.proj.OCSP.client.CertStatus;
-import com.businesssystemssecurity.proj.OCSP.client.OCSPClient;
-import com.businesssystemssecurity.proj.OCSP.client.OCSPValidationException;
 import com.businesssystemssecurity.proj.OCSP.client.PeriodicOCSPValidator;
-import com.businesssystemssecurity.proj.exception.AccessDeniedException;
-import com.businesssystemssecurity.proj.exception.BadParametersException;
 import com.businesssystemssecurity.proj.handler.ApiError;
 import com.businesssystemssecurity.proj.security.service.UserDetailsServiceImpl;
 import com.businesssystemssecurity.proj.service.UserService;

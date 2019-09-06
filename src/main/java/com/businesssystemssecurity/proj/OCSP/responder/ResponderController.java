@@ -6,10 +6,17 @@ import com.businesssystemssecurity.proj.service.CertificateService;
 import com.businesssystemssecurity.proj.storage.CertificateStorage;
 import lombok.extern.slf4j.Slf4j;
 import net.maritimecloud.pki.Revocation;
+import org.bouncycastle.asn1.ocsp.OCSPObjectIdentifiers;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.Extensions;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.ocsp.*;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import org.bouncycastle.util.encoders.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,13 +27,19 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.net.URLDecoder;
-import java.security.KeyStore;
+import java.security.PublicKey;
+import java.security.Security;
 import java.util.Date;
+
 
 
 @RestController
 @Slf4j
 public class ResponderController {
+
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
 
     @Autowired
     private CertificateService certificateService;
@@ -86,6 +99,24 @@ public class ResponderController {
         return new ResponseEntity<>(byteResponse, HttpStatus.OK);
     }
 
+    private BasicOCSPRespBuilder initOCSPRespBuilder(OCSPReq request, PublicKey publicKey) throws OCSPException, OperatorCreationException {
+        SubjectPublicKeyInfo keyinfo = SubjectPublicKeyInfo.getInstance(publicKey.getEncoded());
+        BasicOCSPRespBuilder respBuilder;
+        try {
+            respBuilder = new BasicOCSPRespBuilder(keyinfo,
+                    new JcaDigestCalculatorProviderBuilder().setProvider(BC_PROVIDER_NAME).build().get(CertificateID.HASH_SHA1)); // Create builder
+        } catch (Exception e) {
+
+            throw e;
+        }
+
+        Extension ext = request.getExtension(OCSPObjectIdentifiers.id_pkix_ocsp_nonce);
+        if (ext != null) {
+            respBuilder.setResponseExtensions(new Extensions(new Extension[] { ext })); // Put the nonce back in the response
+        }
+        return respBuilder;
+    }
+
 
     private byte[] handleOCSP(byte[] input, String certAlias) throws Exception {
         OCSPReq ocspreq = new OCSPReq(input);
@@ -94,7 +125,7 @@ public class ResponderController {
         if (ocspreq.isSigned()) {
         }*/
 
-        BasicOCSPRespBuilder respBuilder = Revocation.initOCSPRespBuilder(ocspreq, this.keystoreHandler.getMCCertificate(certAlias).getPublicKey());
+        BasicOCSPRespBuilder respBuilder = this.initOCSPRespBuilder(ocspreq, this.keystoreHandler.getMCCertificate(certAlias).getPublicKey());
 
         Req[] requests = ocspreq.getRequestList();
         for (Req req : requests) {
@@ -114,6 +145,9 @@ public class ResponderController {
 
             } else {
                 // Certificate is valid
+                if (respBuilder == null) {
+                    System.out.println("Response is null");
+                }
                 respBuilder.addResponse(req.getCertID(), CertificateStatus.GOOD);
             }
         }
