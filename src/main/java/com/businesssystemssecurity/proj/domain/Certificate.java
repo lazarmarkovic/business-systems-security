@@ -42,12 +42,22 @@ public class Certificate {
     @Column(name="revoked", nullable = false)
     private Boolean revoked;
 
-    @Column(name="revokedAt", nullable = true)
+    @Column(name="revoked_at", nullable = true)
     @Temporal(TemporalType.TIMESTAMP)
     private java.util.Date revokedAt;
 
     @Column(columnDefinition = "MEDIUMTEXT", nullable = true)
     private String revokeReason;
+
+    @Column(name="issued_at", nullable = true)
+    @Temporal(TemporalType.TIMESTAMP)
+    private java.util.Date issuedAt;
+
+    @Column(name="expiring_at", nullable = true)
+    @Temporal(TemporalType.TIMESTAMP)
+    private java.util.Date expiringAt;
+
+
 
     public Certificate() {}
 
@@ -62,7 +72,9 @@ public class Certificate {
                        String trustStoreFilePath,
                        Boolean revoked,
                        Date revokedAt,
-                       String revokeReason)
+                       String revokeReason,
+                       Date issuedAt,
+                       Date expiringAt)
     {
         this.serialNumber = serialNumber;
         this.caSerialNumber = caSerialNumber;
@@ -76,6 +88,8 @@ public class Certificate {
         this.revoked = revoked;
         this.revokedAt = revokedAt;
         this.revokeReason = revokeReason;
+        this.issuedAt = issuedAt;
+        this.expiringAt = expiringAt;
     }
 
     public long getId() {
@@ -180,5 +194,21 @@ public class Certificate {
 
     public void setRevokeReason(String revokeReason) {
         this.revokeReason = revokeReason;
+    }
+
+    public Date getIssuedAt() {
+        return issuedAt;
+    }
+
+    public void setIssuedAt(Date issuedAt) {
+        this.issuedAt = issuedAt;
+    }
+
+    public Date getExpiringAt() {
+        return expiringAt;
+    }
+
+    public void setExpiringAt(Date expiringAt) {
+        this.expiringAt = expiringAt;
     }
 }

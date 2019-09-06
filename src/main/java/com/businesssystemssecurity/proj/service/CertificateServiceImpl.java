@@ -178,7 +178,9 @@ public class CertificateServiceImpl implements CertificateService {
                 filePathsOfDistributionFiles[2],
                 false,
                 null,
-                null
+                null,
+                subject.getStartDate(),
+                subject.getEndDate()
         );
 
 //        /* Test their method */

@@ -5,7 +5,7 @@ import com.businesssystemssecurity.proj.web.dto.subject.SubjectDTO;
 
 public class CertificateGenerateRequestDTO {
 
-    private String issuerName = "";
+    private String issuerSerialNumber = "";
 
     private String commonName = "";
     private String organizationUnit = "";
@@ -27,12 +27,12 @@ public class CertificateGenerateRequestDTO {
         );
     }
 
-    public String getIssuerName() {
-        return issuerName;
+    public String getIssuerSerialNumber() {
+        return issuerSerialNumber;
     }
 
-    public void setIssuerName(String issuerName) {
-        this.issuerName = issuerName;
+    public void setIssuerSerialNumber(String issuerSerialNumber) {
+        this.issuerSerialNumber = issuerSerialNumber;
     }
 
     public String getCommonName() {

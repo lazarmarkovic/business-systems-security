@@ -113,7 +113,7 @@ public class CertificateController {
 
         String serialNumber = "";
         if (request.getCertificateType() != CertificateType.ROOT) {
-            Certificate issuer = this.certificateService.findBySubjectName(request.getIssuerName());
+            Certificate issuer = this.certificateService.findBySerialNumber(request.getIssuerSerialNumber());
             serialNumber = issuer.getSerialNumber();
         }
         Certificate c = certificateService.createCertificate(

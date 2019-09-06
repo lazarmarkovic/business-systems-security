@@ -1,6 +1,7 @@
 package com.businesssystemssecurity.proj;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
@@ -16,6 +17,9 @@ import org.springframework.web.client.RestTemplate;
 @Component
 @EnableAsync
 public class SSLEventCreator {
+
+    @Value("${testing-server.state}")
+    private String tsState;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -42,6 +46,11 @@ public class SSLEventCreator {
 
     @EventListener
     public void onApplicationEvent(ContextRefreshedEvent event) {
-        this.systemReady = true;
+        if (tsState.equals("on")) {
+            this.systemReady = true;
+        } else {
+            this.systemReady = false;
+        }
+
     }
 }

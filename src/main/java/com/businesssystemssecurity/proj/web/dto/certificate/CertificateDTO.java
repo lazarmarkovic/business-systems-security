@@ -1,10 +1,12 @@
 package com.businesssystemssecurity.proj.web.dto.certificate;
 
 import com.businesssystemssecurity.proj.domain.Certificate;
+import org.springframework.stereotype.Component;
 
-import java.util.Date;
 
+@Component
 public class CertificateDTO {
+
     private long id;
     private String serialNumber;
     private String caSerialNumber;
@@ -12,10 +14,15 @@ public class CertificateDTO {
     private String subject;
     private Boolean CA;
     private Boolean revoked;
-    private java.util.Date revokedAt;
+    private String revokedAt;
     private String revokeReason;
+    private String type;
+
+    private String issuedAt;
+    private String expiringAt;
 
     public CertificateDTO() {}
+
 
 
     public CertificateDTO(Certificate c) {
@@ -26,23 +33,17 @@ public class CertificateDTO {
         this.subject = c.getSubject();
         this.CA = c.getCA();
         this.revoked = c.getRevoked();
-        this.revokedAt = c.getRevokedAt();
+        if (c.getRevokedAt() != null) {
+            this.revokedAt = c.getRevokedAt().toString();
+        } else {
+            this.revokedAt = "--";
+        }
         this.revokeReason = c.getRevokeReason();
+        this.type = c.getType();
+        this.issuedAt = c.getIssuedAt().toString();
+        this.expiringAt = c.getExpiringAt().toString();
 
     }
-
-    public CertificateDTO(long id, String serialNumber, String caSerialNumber, String issuer, String subject, Boolean CA, Boolean revoked, java.util.Date revokedAt, String revokeReason) {
-        this.id = id;
-        this.serialNumber = serialNumber;
-        this.caSerialNumber = caSerialNumber;
-        this.issuer = issuer;
-        this.subject = subject;
-        this.CA = CA;
-        this.revoked = revoked;
-        this.revokedAt = revokedAt;
-        this.revokeReason = revokeReason;
-    }
-
 
     public long getId() {
         return id;
@@ -100,19 +101,43 @@ public class CertificateDTO {
         this.revoked = revoked;
     }
 
-    public Date getRevokedAt() {
-        return revokedAt;
-    }
-
-    public void setRevokedAt(Date revokedAt) {
-        this.revokedAt = revokedAt;
-    }
-
     public String getRevokeReason() {
         return revokeReason;
     }
 
     public void setRevokeReason(String revokeReason) {
         this.revokeReason = revokeReason;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getRevokedAt() {
+        return revokedAt;
+    }
+
+    public void setRevokedAt(String revokedAt) {
+        this.revokedAt = revokedAt;
+    }
+
+    public String getIssuedAt() {
+        return issuedAt;
+    }
+
+    public void setIssuedAt(String issuedAt) {
+        this.issuedAt = issuedAt;
+    }
+
+    public String getExpiringAt() {
+        return expiringAt;
+    }
+
+    public void setExpiringAt(String expiringAt) {
+        this.expiringAt = expiringAt;
     }
 }
