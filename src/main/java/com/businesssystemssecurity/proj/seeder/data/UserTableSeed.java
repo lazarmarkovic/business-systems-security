@@ -121,7 +121,7 @@ public class UserTableSeed {
 
         for (long permissionID : userSeedData.permissionIDs) {
             UserPermission up = new UserPermission();
-            Optional<Permission> permission = this.permissionRepository.findById(userSeedData.authorityID);
+            Optional<Permission> permission = this.permissionRepository.findById(permissionID);
 
             // Check existence of permission
             if (!permission.isPresent()) {

@@ -7,4 +7,6 @@ public interface AuthService {
     String authenticate(String email, String password);
 
     User getAuthUser();
+
+    boolean hasPermission(String permission);
 }

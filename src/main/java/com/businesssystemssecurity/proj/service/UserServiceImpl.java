@@ -12,6 +12,7 @@ import com.businesssystemssecurity.proj.security.service.AuthService;
 import com.businesssystemssecurity.proj.web.dto.user.UserPasswordDTO;
 import com.businesssystemssecurity.proj.web.dto.user.UserRegistrationDTO;
 import com.businesssystemssecurity.proj.web.dto.user.UserUpdateDTO;
+import com.businesssystemssecurity.proj.web.dto.user.UserUpdatePermissionsDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -130,20 +132,60 @@ public class UserServiceImpl implements UserService {
         updateUser.setLastName(userUpdateDTO.getLastName());
         updateUser.setEmail(userUpdateDTO.getEmail());
 
+        return userRepository.save(updateUser);
+    }
+
+    @Override
+    @Transactional
+    public User updatePermissions(long userId, UserUpdatePermissionsDTO userUpdatePermissionsDTO) {
+        try{
+        System.out.println(userUpdatePermissionsDTO);
+
+        User updateUser = findById(userId);
+        updateUser.setSuspended(userUpdatePermissionsDTO.isSuspended());
+        userRepository.save(updateUser);
+
+//        System.out.println("Deleting");
+//        this.userPermissionRepository.deleteUserPermissionsByUserId(userId);
+//        System.out.println("Finish deleting");
+
+
         ArrayList<UserPermission> userPermissions = this.userPermissionRepository.findUserPermissionsByUserId(userId);
+
         for (UserPermission up : userPermissions) {
-            this.userPermissionRepository.delete(up);
+            System.out.println("Nasao sam ovo: " + up.getId());
+            up.setUser(null);
+            up.setPermission(null);
+            this.userPermissionRepository.save(up);
+            System.out.println("Postavio.");
         }
 
-        for (long permissionId : userUpdateDTO.getPermissions()) {
+        ArrayList<Long> ids = (ArrayList<Long>)userPermissions
+                .stream()
+                .map((value) -> {
+                    return value.getId();
+                })
+                .collect(Collectors.toList());
+
+        for (Long id : ids) {
+            this.userPermissionRepository.deleteById(id);
+            System.out.println("Isbrisao");
+        }
+
+        for (long permissionId : userUpdatePermissionsDTO.getPermissions()) {
             Permission p = this.permissionService.findById(permissionId);
             UserPermission up = new UserPermission();
             up.setPermission(p);
             up.setUser(updateUser);
             this.userPermissionRepository.save(up);
+
+        }
+            return updateUser;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
-        return userRepository.save(updateUser);
+        return null;
     }
 
     @Override
@@ -162,26 +204,6 @@ public class UserServiceImpl implements UserService {
 
         updateUser.setPassword(passwordEncoder.encode(userPasswordDTO.getNewPassword()));
         return userRepository.save(updateUser);
-    }
-
-    @Override
-    @Transactional
-    public User suspend(long userId) {
-        User updateUser = findById(userId);
-        updateUser.setSuspended(true);
-        userRepository.save(updateUser);
-
-        return updateUser;
-    }
-
-    @Override
-    @Transactional
-    public User unsuspend(long userId) {
-        User updateUser = findById(userId);
-        updateUser.setSuspended(false);
-        userRepository.save(updateUser);
-
-        return updateUser;
     }
 
     @Override

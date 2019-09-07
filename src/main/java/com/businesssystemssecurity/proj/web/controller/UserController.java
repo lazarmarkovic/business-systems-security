@@ -2,10 +2,7 @@ package com.businesssystemssecurity.proj.web.controller;
 
 import com.businesssystemssecurity.proj.domain.User;
 import com.businesssystemssecurity.proj.service.UserService;
-import com.businesssystemssecurity.proj.web.dto.user.UserDTO;
-import com.businesssystemssecurity.proj.web.dto.user.UserPasswordDTO;
-import com.businesssystemssecurity.proj.web.dto.user.UserRegistrationDTO;
-import com.businesssystemssecurity.proj.web.dto.user.UserUpdateDTO;
+import com.businesssystemssecurity.proj.web.dto.user.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -72,30 +69,21 @@ public class UserController {
     }
 
     @PreAuthorize("hasAnyAuthority('admin', 'regular')")
+    @RequestMapping(value = "/{id}/permissions",
+            method = RequestMethod.PUT,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UserDTO> updatePermissions(@PathVariable Long id, @RequestBody @Valid UserUpdatePermissionsDTO userUpdatePermissionsDTO) {
+        User user = userService.updatePermissions(id, userUpdatePermissionsDTO);
+        return new ResponseEntity<>(new UserDTO(user), HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
     @RequestMapping(value = "/{id}/password",
             method = RequestMethod.PUT,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<UserDTO> changePassword(@PathVariable Long id, @RequestBody @Valid UserPasswordDTO userPasswordDTO) {
 
         User user = userService.changePassword(id, userPasswordDTO);
-        return new ResponseEntity<>(new UserDTO(user), HttpStatus.OK);
-    }
-
-    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
-    @RequestMapping(value = "/{id}/suspend",
-            method = RequestMethod.PUT,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<UserDTO> suspend(@PathVariable Long id) {
-        User user = this.userService.suspend(id);
-        return new ResponseEntity<>(new UserDTO(user), HttpStatus.OK);
-    }
-
-    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
-    @RequestMapping(value = "/{id}/unsuspend",
-            method = RequestMethod.PUT,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<UserDTO> unsuspend(@PathVariable Long id) {
-        User user = this.userService.unsuspend(id);
         return new ResponseEntity<>(new UserDTO(user), HttpStatus.OK);
     }
 

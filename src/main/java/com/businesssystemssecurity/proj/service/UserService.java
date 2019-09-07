@@ -5,6 +5,7 @@ import com.businesssystemssecurity.proj.domain.User;
 import com.businesssystemssecurity.proj.web.dto.user.UserPasswordDTO;
 import com.businesssystemssecurity.proj.web.dto.user.UserRegistrationDTO;
 import com.businesssystemssecurity.proj.web.dto.user.UserUpdateDTO;
+import com.businesssystemssecurity.proj.web.dto.user.UserUpdatePermissionsDTO;
 
 import java.util.ArrayList;
 
@@ -23,11 +24,9 @@ public interface UserService {
 
     User update(long id, UserUpdateDTO userUpdateDTO);
 
+    User updatePermissions(long id, UserUpdatePermissionsDTO userUpdatePermissionsDTO);
+
     User changePassword(long id, UserPasswordDTO userPasswordDTO);
-
-    User suspend(long id);
-
-    User unsuspend(long id);
 
     void delete(long id);
 }

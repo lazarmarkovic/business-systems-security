@@ -15,7 +15,7 @@ public class Permission {
     @Column(name = "name", nullable = false, length = 50)
     private String name;
 
-    @OneToMany(mappedBy = "permission", fetch = FetchType.LAZY, cascade = CascadeType.REFRESH)
+    @OneToMany(mappedBy = "permission", fetch = FetchType.LAZY)
     private Set<UserPermission> userPermissions = new HashSet<>();
 
     public long getId() {

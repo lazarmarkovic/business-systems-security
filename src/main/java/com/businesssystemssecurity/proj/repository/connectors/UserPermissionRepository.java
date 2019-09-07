@@ -12,4 +12,6 @@ import java.util.Optional;
 public interface UserPermissionRepository extends JpaRepository<UserPermission, Long> {
 
     ArrayList<UserPermission> findUserPermissionsByUserId(long id);
+
+    void deleteUserPermissionsByUserId(long id);
 }

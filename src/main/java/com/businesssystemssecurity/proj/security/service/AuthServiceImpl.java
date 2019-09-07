@@ -1,6 +1,8 @@
 package com.businesssystemssecurity.proj.security.service;
 
+import com.businesssystemssecurity.proj.domain.Permission;
 import com.businesssystemssecurity.proj.domain.User;
+import com.businesssystemssecurity.proj.domain.UserPermission;
 import com.businesssystemssecurity.proj.exception.UserUnauthorizedException;
 import com.businesssystemssecurity.proj.security.conf.TokenUtils;
 import com.businesssystemssecurity.proj.service.UserService;
@@ -11,6 +13,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -55,5 +60,17 @@ public class AuthServiceImpl implements AuthService {
 
         return authUser;
     }
+
+    @Override
+    public boolean hasPermission(String permission) {
+        Set<UserPermission> userPermissions = this.getAuthUser().getUserPermissions();
+        for (UserPermission up : userPermissions) {
+            if (up.getPermission().getName().equals(permission)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
 }

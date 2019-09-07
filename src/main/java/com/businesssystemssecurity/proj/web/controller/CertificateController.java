@@ -3,6 +3,7 @@ package com.businesssystemssecurity.proj.web.controller;
 import com.businesssystemssecurity.proj.domain.Certificate;
 import com.businesssystemssecurity.proj.domain.helper.CertificateType;
 import com.businesssystemssecurity.proj.exception.PKIMalfunctionException;
+import com.businesssystemssecurity.proj.security.service.AuthService;
 import com.businesssystemssecurity.proj.service.CertificateService;
 import com.businesssystemssecurity.proj.web.dto.certificate.CertificateDTO;
 import com.businesssystemssecurity.proj.web.dto.certificate.CertificateGenerateRequestDTO;
@@ -29,10 +30,13 @@ public class CertificateController {
     @Autowired
     private CertificateService certificateService;
 
+    @Autowired
+    private AuthService authService;
+
     @RequestMapping(value = "/{id}",
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
     public ResponseEntity<CertificateDTO> getById(@PathVariable int id) {
         return new ResponseEntity<>(
                 new CertificateDTO(certificateService.findById(id)),
@@ -42,7 +46,7 @@ public class CertificateController {
     @RequestMapping(value = "/{serialNumber}/zip",
             method = RequestMethod.GET,
             produces="application/zip")
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
     public byte[] getZip(HttpServletResponse response, @PathVariable String serialNumber) {
         response.setStatus(HttpServletResponse.SC_OK);
         response.addHeader("Content-Disposition", "attachment; filename=\"test.zip\"");
@@ -87,7 +91,7 @@ public class CertificateController {
     @RequestMapping(value = "/all",
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
     public ResponseEntity<ArrayList<Certificate>> getAll() {
         return new ResponseEntity<>(
                 certificateService.findAll(),
@@ -97,7 +101,7 @@ public class CertificateController {
     @RequestMapping(value = "/forest",
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
     public ResponseEntity<ArrayList<TreeItem>> getForest() {
         return new ResponseEntity<>(
                 certificateService.getTree(),
@@ -108,7 +112,7 @@ public class CertificateController {
     @RequestMapping(value = "",
             method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
     public ResponseEntity<CertificateDTO> generate(@RequestBody CertificateGenerateRequestDTO request) {
 
         String serialNumber = "";
@@ -129,7 +133,7 @@ public class CertificateController {
     @RequestMapping(value = "/revoke",
             method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
     public ResponseEntity<CertificateDTO> revoke(@RequestBody CertificateRevokeRequestDTO request) {
 
         Certificate c = certificateService.revokeCertificate(
@@ -144,7 +148,7 @@ public class CertificateController {
     @RequestMapping(value = "/{serialNumber}/unrevoke",
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAuthority('admin')")
+    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
     public ResponseEntity<CertificateDTO> unrevoke(@PathVariable String serialNumber) {
 
         Certificate c = certificateService.unrevokeCertificate(serialNumber);
