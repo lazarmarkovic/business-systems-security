@@ -19,6 +19,9 @@ public class UserUpdateDTO {
     @NotNull
     private String email;
 
+    @NotNull
+    private long[] permissions;
+
     public String getFirstName() {
         return firstName;
     }
@@ -41,5 +44,13 @@ public class UserUpdateDTO {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public long[] getPermissions() {
+        return permissions;
+    }
+
+    public void setPermissions(long[] permissions) {
+        this.permissions = permissions;
     }
 }

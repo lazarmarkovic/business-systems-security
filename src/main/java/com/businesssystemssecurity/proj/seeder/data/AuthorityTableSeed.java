@@ -7,10 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import javax.transaction.Transactional;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -24,34 +21,28 @@ public class AuthorityTableSeed {
     public static final String ADMIN_AUTHORITY_NAME = "admin";
     public static final String REGULAR_AUTHORITY_NAME = "regular";
 
-    private final Map<String, String> DATA = new HashMap<>();
 
+    public final String[] DATA = {
+            ADMIN_AUTHORITY_NAME,
+            REGULAR_AUTHORITY_NAME
+    };
 
-    @PostConstruct
-    public void init(){
-        DATA.put("admin", ADMIN_AUTHORITY_NAME);
-        DATA.put("regular", REGULAR_AUTHORITY_NAME);
-    }
 
     @Transactional
-    public void seed(String dataIndex) {
-        if (!this.DATA.containsKey(dataIndex)) {
-            logger.error("Data index " + dataIndex + " not found!");
-            return;
-        }
+    public void seed() {
 
-        String authority = DATA.get(dataIndex);
+       for (String authority_name : this.DATA) {
+           Optional<Authority> found_role = authorityRepository.findByName(authority_name);
+           if (found_role.isPresent()) {
+               logger.info("Authority " + authority_name + "already added.");
+               return;
+           }
 
-        Optional<Authority> found_role = authorityRepository.findByName(authority);
-        if (found_role.isPresent()) {
-            logger.info("Authority " + authority + "already added.");
-            return;
-        }
-
-        Authority new_authority = new Authority();
-        new_authority.setName(authority);
-        authorityRepository.save(new_authority);
-        logger.info("Added authority: " + new_authority);
+           Authority new_authority = new Authority();
+           new_authority.setName(authority_name);
+           authorityRepository.save(new_authority);
+           logger.info("Added authority: " + new_authority);
+       }
     }
 
 }

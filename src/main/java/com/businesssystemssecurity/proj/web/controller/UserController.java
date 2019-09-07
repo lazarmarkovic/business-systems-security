@@ -14,6 +14,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
@@ -23,7 +25,7 @@ public class UserController {
     private UserService userService;
 
 
-    @PreAuthorize("hasAnyAuthority('admin', 'regular', 'verificator', 'controller')")
+    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
     @RequestMapping(value = "/{id}",
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
@@ -33,45 +35,43 @@ public class UserController {
         return new ResponseEntity<>(new UserDTO(user), HttpStatus.OK);
     }
 
-    @PreAuthorize("hasAnyAuthority('student_service')")
-    @RequestMapping(value = "/tutors",
+    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
+    @RequestMapping(value = "",
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ArrayList<UserDTO>> getAll() {
+        ArrayList<User> users = this.userService.findAll();
+        ArrayList <UserDTO> userDTOS = (ArrayList<UserDTO>) users
+                .stream()
+                .map(UserDTO::new)
+                .collect(Collectors.toList());
+
+        return new ResponseEntity<>(userDTOS, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
+    @RequestMapping(value = "",
             method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<UserDTO> createTutor(@RequestBody @Valid UserRegistrationDTO userRegistrationDTO) {
-
+    public ResponseEntity<UserDTO> create(@RequestBody @Valid UserRegistrationDTO userRegistrationDTO) {
         // Not good way to sort this out..
-        Long TUTOR_AUTHORITY_ID = 2L;
-        userRegistrationDTO.setAuthorityId(TUTOR_AUTHORITY_ID);
+        Long AUTHORITY_ID = 2L;
+        userRegistrationDTO.setAuthorityId(AUTHORITY_ID);
 
         User user = userService.create(userRegistrationDTO);
         return new ResponseEntity<>(new UserDTO(user), HttpStatus.CREATED);
     }
 
-
-    @RequestMapping(value = "/students",
-            method = RequestMethod.POST,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<UserDTO> createStudent(@RequestBody @Valid UserRegistrationDTO userRegistrationDTO) {
-
-        // Not good way to sort this out..
-        Long STUDENT_AUTHORITY_ID = 3L;
-        userRegistrationDTO.setAuthorityId(STUDENT_AUTHORITY_ID);
-
-        User user = userService.create(userRegistrationDTO);
-        return new ResponseEntity<>(new UserDTO(user), HttpStatus.CREATED);
-    }
-
-    @PreAuthorize("hasAnyAuthority('tutor', 'student')")
+    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
     @RequestMapping(value = "/{id}",
             method = RequestMethod.PUT,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<UserDTO> update(@PathVariable Long id, @RequestBody @Valid UserUpdateDTO userUpdateDTO) {
-
         User user = userService.update(id, userUpdateDTO);
         return new ResponseEntity<>(new UserDTO(user), HttpStatus.OK);
     }
 
-    @PreAuthorize("hasAnyAuthority('tutor', 'student')")
+    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
     @RequestMapping(value = "/{id}/password",
             method = RequestMethod.PUT,
             produces = MediaType.APPLICATION_JSON_VALUE)
@@ -79,6 +79,33 @@ public class UserController {
 
         User user = userService.changePassword(id, userPasswordDTO);
         return new ResponseEntity<>(new UserDTO(user), HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
+    @RequestMapping(value = "/{id}/suspend",
+            method = RequestMethod.PUT,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UserDTO> suspend(@PathVariable Long id) {
+        User user = this.userService.suspend(id);
+        return new ResponseEntity<>(new UserDTO(user), HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
+    @RequestMapping(value = "/{id}/unsuspend",
+            method = RequestMethod.PUT,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UserDTO> unsuspend(@PathVariable Long id) {
+        User user = this.userService.unsuspend(id);
+        return new ResponseEntity<>(new UserDTO(user), HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
+    @RequestMapping(value = "/{id}",
+            method = RequestMethod.DELETE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> delete(@PathVariable Long id) {
+        this.userService.delete(id);
+        return new ResponseEntity<>("", HttpStatus.OK);
     }
 
 }

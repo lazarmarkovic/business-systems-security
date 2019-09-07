@@ -46,7 +46,7 @@ public class Certificate {
     @Temporal(TemporalType.TIMESTAMP)
     private java.util.Date revokedAt;
 
-    @Column(columnDefinition = "MEDIUMTEXT", nullable = true)
+    @Column(name="revoke_reason", columnDefinition = "MEDIUMTEXT", nullable = true)
     private String revokeReason;
 
     @Column(name="issued_at", nullable = true)

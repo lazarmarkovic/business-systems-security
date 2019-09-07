@@ -24,4 +24,10 @@ public interface UserService {
     User update(long id, UserUpdateDTO userUpdateDTO);
 
     User changePassword(long id, UserPasswordDTO userPasswordDTO);
+
+    User suspend(long id);
+
+    User unsuspend(long id);
+
+    void delete(long id);
 }

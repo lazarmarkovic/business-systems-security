@@ -24,9 +24,11 @@ public class UserRegistrationDTO {
     @NotNull
     private String password;
 
-    @Min(1)
-    @NotNull
+
     private Long authorityId;
+
+    @NotNull
+    private long[] permissions;
 
     public String getFirstName() {
         return firstName;
@@ -66,5 +68,13 @@ public class UserRegistrationDTO {
 
     public void setAuthorityId(Long authorityId) {
         this.authorityId = authorityId;
+    }
+
+    public long[] getPermissions() {
+        return permissions;
+    }
+
+    public void setPermissions(long[] permissions) {
+        this.permissions = permissions;
     }
 }

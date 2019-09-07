@@ -2,6 +2,7 @@ package com.businesssystemssecurity.proj.web.dto.user;
 
 import com.businesssystemssecurity.proj.domain.User;
 import com.businesssystemssecurity.proj.web.dto.authority.AuthorityDTO;
+import com.businesssystemssecurity.proj.web.dto.permission.PermissionDTO;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -12,6 +13,7 @@ public class UserDTO {
     private String firstName;
     private String lastName;
     private Set<AuthorityDTO> userAuthorities;
+    private Set<PermissionDTO> userPermissions;
 
     public UserDTO(Long id, String email, String firstName, String lastName) {
         this.id = id;
@@ -28,6 +30,10 @@ public class UserDTO {
 
         this.userAuthorities = u.getUserAuthorities().stream().map(ua ->
                 new AuthorityDTO(ua.getAuthority())
+        ).collect(Collectors.toSet());
+
+        this.userPermissions = u.getUserPermissions().stream().map(ua ->
+                new PermissionDTO(ua.getPermission())
         ).collect(Collectors.toSet());
     }
 
@@ -71,4 +77,11 @@ public class UserDTO {
         this.userAuthorities = userAuthorities;
     }
 
+    public Set<PermissionDTO> getUserPermissions() {
+        return userPermissions;
+    }
+
+    public void setUserPermissions(Set<PermissionDTO> userPermissions) {
+        this.userPermissions = userPermissions;
+    }
 }
