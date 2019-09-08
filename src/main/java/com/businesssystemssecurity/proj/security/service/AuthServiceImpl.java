@@ -3,6 +3,7 @@ package com.businesssystemssecurity.proj.security.service;
 import com.businesssystemssecurity.proj.domain.Permission;
 import com.businesssystemssecurity.proj.domain.User;
 import com.businesssystemssecurity.proj.domain.UserPermission;
+import com.businesssystemssecurity.proj.exception.AccessDeniedException;
 import com.businesssystemssecurity.proj.exception.UserUnauthorizedException;
 import com.businesssystemssecurity.proj.security.conf.TokenUtils;
 import com.businesssystemssecurity.proj.service.UserService;
@@ -57,6 +58,10 @@ public class AuthServiceImpl implements AuthService {
 
         UserDetails userDetails = (UserDetails)auth.getPrincipal();
         User authUser = userService.findByEmail(userDetails.getUsername());
+
+        if (authUser.isSuspended()) {
+            throw new AccessDeniedException("User is suspended.");
+        }
 
         return authUser;
     }
