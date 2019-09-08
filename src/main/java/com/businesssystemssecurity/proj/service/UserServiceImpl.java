@@ -122,15 +122,8 @@ public class UserServiceImpl implements UserService {
         }
 
         User updateUser = findById(userId);
-        Optional<User> userWithGivenEmail = userRepository.findByEmail(userUpdateDTO.getEmail());
-
-        if (userWithGivenEmail.isPresent() && userWithGivenEmail.get().getId() != updateUser.getId()) {
-            throw new BadRegistrationParametersException("User with given email is already registered.");
-        }
-
         updateUser.setFirstName(userUpdateDTO.getFirstName());
         updateUser.setLastName(userUpdateDTO.getLastName());
-        updateUser.setEmail(userUpdateDTO.getEmail());
 
         return userRepository.save(updateUser);
     }

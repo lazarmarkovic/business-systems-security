@@ -14,11 +14,6 @@ public class UserUpdateDTO {
     @NotNull
     private String lastName;
 
-    @Email
-    @Size(min = 5, max = 30)
-    @NotNull
-    private String email;
-
     public String getFirstName() {
         return firstName;
     }
@@ -35,11 +30,4 @@ public class UserUpdateDTO {
         this.lastName = lastName;
     }
 
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
 }
