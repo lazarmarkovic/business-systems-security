@@ -41,6 +41,7 @@ public class TreeItem {
             this.name += "  [ Status: GOOD ]";
         }
 
+        this.name += "  [ Type: " + certificate.getType() + " ]";
 
         this.certificate = new CertificateDTO(certificate);;
         this.children = new ArrayList<>();

@@ -1,6 +1,9 @@
 package com.businesssystemssecurity.proj.web.controller;
 
 import com.businesssystemssecurity.proj.domain.User;
+import com.businesssystemssecurity.proj.exception.AccessDeniedException;
+import com.businesssystemssecurity.proj.security.service.AuthService;
+import com.businesssystemssecurity.proj.seeder.data.PermissionTableSeed;
 import com.businesssystemssecurity.proj.service.UserService;
 import com.businesssystemssecurity.proj.web.dto.user.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +24,9 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private AuthService authService;
+
 
     @PreAuthorize("hasAnyAuthority('admin', 'regular')")
     @RequestMapping(value = "/{id}",
@@ -37,6 +43,10 @@ public class UserController {
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ArrayList<UserDTO>> getAll() {
+        if (!this.authService.hasPermission(PermissionTableSeed.EDIT_USER_PERMISSIONS)) {
+            throw new AccessDeniedException("User has no permission to list all users.");
+        }
+        this.authService.hasPermission(PermissionTableSeed.EDIT_USER_PERMISSIONS);
         ArrayList<User> users = this.userService.findAll();
         ArrayList <UserDTO> userDTOS = (ArrayList<UserDTO>) users
                 .stream()
@@ -51,6 +61,9 @@ public class UserController {
             method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<UserDTO> create(@RequestBody @Valid UserRegistrationDTO userRegistrationDTO) {
+        if (!this.authService.hasPermission(PermissionTableSeed.REGISTER_USERS)) {
+            throw new AccessDeniedException("User has no permission to register new user.");
+        }
         // Not good way to sort this out..
         Long AUTHORITY_ID = 2L;
         userRegistrationDTO.setAuthorityId(AUTHORITY_ID);
@@ -73,6 +86,9 @@ public class UserController {
             method = RequestMethod.PUT,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<UserDTO> updatePermissions(@PathVariable Long id, @RequestBody @Valid UserUpdatePermissionsDTO userUpdatePermissionsDTO) {
+        if (!this.authService.hasPermission(PermissionTableSeed.EDIT_USER_PERMISSIONS)) {
+            throw new AccessDeniedException("User has no permission to edit user.");
+        }
         User user = userService.updatePermissions(id, userUpdatePermissionsDTO);
         return new ResponseEntity<>(new UserDTO(user), HttpStatus.OK);
     }
@@ -82,18 +98,8 @@ public class UserController {
             method = RequestMethod.PUT,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<UserDTO> changePassword(@PathVariable Long id, @RequestBody @Valid UserPasswordDTO userPasswordDTO) {
-
         User user = userService.changePassword(id, userPasswordDTO);
         return new ResponseEntity<>(new UserDTO(user), HttpStatus.OK);
-    }
-
-    @PreAuthorize("hasAnyAuthority('admin', 'regular')")
-    @RequestMapping(value = "/{id}",
-            method = RequestMethod.DELETE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> delete(@PathVariable Long id) {
-        this.userService.delete(id);
-        return new ResponseEntity<>("", HttpStatus.OK);
     }
 
 }

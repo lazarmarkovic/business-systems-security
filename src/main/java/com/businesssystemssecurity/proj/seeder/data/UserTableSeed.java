@@ -65,7 +65,7 @@ public class UserTableSeed {
     public final static String ADMIN_FIRSTNAME = "Đura";
     public final static String ADMIN_LASTNAME = "Jakšić";
     public final static long   ADMIN_AUTHORITY_ID = 1L;
-    public final static long[] ADMIN_PERMISSION_IDS = {1,2,3,4,5,6,7,8,9,10,11,12};
+    public final static long[] ADMIN_PERMISSION_IDS = {1,2,3,4,5,6,7,8,9,10,11};
     public final static UserSeedData ADMIN = new UserSeedData(
             ADMIN_EMAIL,
             ADMIN_PASSWORD,

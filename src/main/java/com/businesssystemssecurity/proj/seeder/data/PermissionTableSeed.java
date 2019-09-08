@@ -20,7 +20,6 @@ public class PermissionTableSeed {
 
     public static final String REGISTER_USERS = "register_users";
     public static final String EDIT_USER_PERMISSIONS = "edit_user_permissions";
-    public static final String SUSPEND_USER = "suspend_user";
     public static final String ISSUE_ROOT_CERTIFICATE = "issue_root_certificate";
     public static final String ISSUE_INTERMEDIATE_CERTIFICATE = "issue_intermediate_certificate";
     public static final String ISSUE_USER_CERTIFICATE = "issue_user_certificate";
@@ -35,7 +34,6 @@ public class PermissionTableSeed {
     public final String[] DATA = {
             REGISTER_USERS,
             EDIT_USER_PERMISSIONS,
-            SUSPEND_USER,
             ISSUE_ROOT_CERTIFICATE,
             ISSUE_INTERMEDIATE_CERTIFICATE,
             ISSUE_USER_CERTIFICATE,
