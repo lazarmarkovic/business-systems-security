@@ -21,6 +21,10 @@ public interface CertificateService {
 
     Certificate createCertificate(SubjectDTO subjectDTO, String issuerSerialNumber, CertificateType type);
 
+    Certificate revokeCertificate(String serialNumber, String reason);
+
+    Certificate unrevokeCertificate(String serialNumber);
+
 
 }
 

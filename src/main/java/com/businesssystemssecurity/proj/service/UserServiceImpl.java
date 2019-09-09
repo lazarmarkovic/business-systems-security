@@ -1,16 +1,18 @@
 package com.businesssystemssecurity.proj.service;
 
-import com.businesssystemssecurity.proj.domain.Authority;
-import com.businesssystemssecurity.proj.domain.User;
-import com.businesssystemssecurity.proj.domain.UserAuthority;
+import com.businesssystemssecurity.proj.domain.*;
 import com.businesssystemssecurity.proj.exception.AccessDeniedException;
 import com.businesssystemssecurity.proj.exception.BadRegistrationParametersException;
 import com.businesssystemssecurity.proj.exception.EntityNotFoundException;
+import com.businesssystemssecurity.proj.repository.PermissionRepository;
 import com.businesssystemssecurity.proj.repository.UserRepository;
+import com.businesssystemssecurity.proj.repository.connectors.UserAuthorityRepository;
+import com.businesssystemssecurity.proj.repository.connectors.UserPermissionRepository;
 import com.businesssystemssecurity.proj.security.service.AuthService;
 import com.businesssystemssecurity.proj.web.dto.user.UserPasswordDTO;
 import com.businesssystemssecurity.proj.web.dto.user.UserRegistrationDTO;
 import com.businesssystemssecurity.proj.web.dto.user.UserUpdateDTO;
+import com.businesssystemssecurity.proj.web.dto.user.UserUpdatePermissionsDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -31,24 +34,31 @@ public class UserServiceImpl implements UserService {
     private AuthService authService;
 
     @Autowired
+    private PermissionService permissionService;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
     private AuthorityService authorityService;
+
+    @Autowired
+    private UserAuthorityRepository userAuthorityRepository;
+
+    @Autowired
+    private UserPermissionRepository userPermissionRepository;
 
 
 
     @Override
     public User findById(long id) {
         Optional<User> opt = this.userRepository.findById(id);
-
         return opt.orElseThrow(() -> new EntityNotFoundException(User.class, "id", Long.toString(id)));
     }
 
     @Override
     public User findByEmail(String email) {
         Optional<User> opt = this.userRepository.findByEmail(email);
-
         return opt.orElseThrow(() -> new EntityNotFoundException(User.class, "email", email));
     }
 
@@ -65,12 +75,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public ArrayList<User> findAll() {
-        ArrayList<User> allUsers = (ArrayList<User>)userRepository.findAll();
-
-        return allUsers;
-
+        return (ArrayList<User>)userRepository.findAll();
     }
-
 
 
     @Override
@@ -90,13 +96,18 @@ public class UserServiceImpl implements UserService {
 
 
         Authority authority = authorityService.findById(userRegistrationDTO.getAuthorityId());
-
         UserAuthority ua = new UserAuthority();
         ua.setAuthority(authority);
         ua.setUser(createdUser);
+        this.userAuthorityRepository.save(ua);
 
-        createdUser.getUserAuthorities().add(ua);
-        userRepository.save(createdUser);
+        for (long permissionId : userRegistrationDTO.getPermissions()) {
+            Permission p = this.permissionService.findById(permissionId);
+            UserPermission up = new UserPermission();
+            up.setPermission(p);
+            up.setUser(createdUser);
+            this.userPermissionRepository.save(up);
+        }
 
         return createdUser;
     }
@@ -111,21 +122,67 @@ public class UserServiceImpl implements UserService {
         }
 
         User updateUser = findById(userId);
-        Optional<User> userWithGivenEmail = userRepository.findByEmail(userUpdateDTO.getEmail());
-
-        if (userWithGivenEmail.isPresent() && userWithGivenEmail.get().getId() != updateUser.getId()) {
-            throw new BadRegistrationParametersException("User with given email is already registered.");
-        }
-
         updateUser.setFirstName(userUpdateDTO.getFirstName());
         updateUser.setLastName(userUpdateDTO.getLastName());
-        updateUser.setEmail(userUpdateDTO.getEmail());
 
-        User saved = userRepository.save(updateUser);
-        return saved;
+        return userRepository.save(updateUser);
     }
 
     @Override
+    @Transactional
+    public User updatePermissions(long userId, UserUpdatePermissionsDTO userUpdatePermissionsDTO) {
+        try{
+        System.out.println(userUpdatePermissionsDTO);
+
+        User updateUser = findById(userId);
+        updateUser.setSuspended(userUpdatePermissionsDTO.isSuspended());
+        userRepository.save(updateUser);
+
+//        System.out.println("Deleting");
+//        this.userPermissionRepository.deleteUserPermissionsByUserId(userId);
+//        System.out.println("Finish deleting");
+
+
+        ArrayList<UserPermission> userPermissions = this.userPermissionRepository.findUserPermissionsByUserId(userId);
+
+        for (UserPermission up : userPermissions) {
+            System.out.println("Nasao sam ovo: " + up.getId());
+            up.setUser(null);
+            up.setPermission(null);
+            this.userPermissionRepository.save(up);
+            System.out.println("Postavio.");
+        }
+
+        ArrayList<Long> ids = (ArrayList<Long>)userPermissions
+                .stream()
+                .map((value) -> {
+                    return value.getId();
+                })
+                .collect(Collectors.toList());
+
+        for (Long id : ids) {
+            this.userPermissionRepository.deleteById(id);
+            System.out.println("Isbrisao");
+        }
+
+        for (long permissionId : userUpdatePermissionsDTO.getPermissions()) {
+            Permission p = this.permissionService.findById(permissionId);
+            UserPermission up = new UserPermission();
+            up.setPermission(p);
+            up.setUser(updateUser);
+            this.userPermissionRepository.save(up);
+
+        }
+            return updateUser;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    @Override
+    @Transactional
     public User changePassword(long userId, UserPasswordDTO userPasswordDTO) {
         User authUser = authService.getAuthUser();
         if (authUser.getId() != userId) {
@@ -139,8 +196,28 @@ public class UserServiceImpl implements UserService {
         }
 
         updateUser.setPassword(passwordEncoder.encode(userPasswordDTO.getNewPassword()));
+        return userRepository.save(updateUser);
+    }
 
-        User saved = userRepository.save(updateUser);
-        return saved;
+    @Override
+    @Transactional
+    public void delete(long userId) {
+        User authUser = authService.getAuthUser();
+        if (authUser.getId() != userId) {
+            throw new AccessDeniedException();
+        }
+        ArrayList<UserAuthority> userAuthorities = this.userAuthorityRepository.findUserAuthoritiesByUserId(userId);
+        for (UserAuthority ua : userAuthorities) {
+            this.userAuthorityRepository.delete(ua);
+        }
+
+        ArrayList<UserPermission> userPermissions = this.userPermissionRepository.findUserPermissionsByUserId(userId);
+        for (UserPermission up : userPermissions) {
+            this.userPermissionRepository.delete(up);
+        }
+
+        User user = this.findById(userId);
+        this.userRepository.delete(user);
+
     }
 }

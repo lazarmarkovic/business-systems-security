@@ -15,6 +15,9 @@ public class Certificate {
     @Column(name="serial_number", nullable = false, unique = true)
     private String serialNumber;
 
+    @Column(name="ca_serial_number", nullable = false, unique = true)
+    private String caSerialNumber;
+
     @Column(name="type", nullable = true)
     private String type;
 
@@ -39,16 +42,27 @@ public class Certificate {
     @Column(name="revoked", nullable = false)
     private Boolean revoked;
 
-    @Column(name="revokedAt", nullable = true)
+    @Column(name="revoked_at", nullable = true)
     @Temporal(TemporalType.TIMESTAMP)
     private java.util.Date revokedAt;
 
-    @Column(columnDefinition = "MEDIUMTEXT", nullable = true)
+    @Column(name="revoke_reason", columnDefinition = "MEDIUMTEXT", nullable = true)
     private String revokeReason;
+
+    @Column(name="issued_at", nullable = true)
+    @Temporal(TemporalType.TIMESTAMP)
+    private java.util.Date issuedAt;
+
+    @Column(name="expiring_at", nullable = true)
+    @Temporal(TemporalType.TIMESTAMP)
+    private java.util.Date expiringAt;
+
+
 
     public Certificate() {}
 
     public Certificate(String serialNumber,
+                       String caSerialNumber,
                        String type,
                        String issuer,
                        String subject,
@@ -58,9 +72,12 @@ public class Certificate {
                        String trustStoreFilePath,
                        Boolean revoked,
                        Date revokedAt,
-                       String revokeReason)
+                       String revokeReason,
+                       Date issuedAt,
+                       Date expiringAt)
     {
         this.serialNumber = serialNumber;
+        this.caSerialNumber = caSerialNumber;
         this.type = type;
         this.issuer = issuer;
         this.subject = subject;
@@ -71,6 +88,8 @@ public class Certificate {
         this.revoked = revoked;
         this.revokedAt = revokedAt;
         this.revokeReason = revokeReason;
+        this.issuedAt = issuedAt;
+        this.expiringAt = expiringAt;
     }
 
     public long getId() {
@@ -87,6 +106,14 @@ public class Certificate {
 
     public void setSerialNumber(String serialNumber) {
         this.serialNumber = serialNumber;
+    }
+
+    public String getCaSerialNumber() {
+        return caSerialNumber;
+    }
+
+    public void setCaSerialNumber(String caSerialNumber) {
+        this.caSerialNumber = caSerialNumber;
     }
 
     public String getType() {
@@ -167,5 +194,21 @@ public class Certificate {
 
     public void setRevokeReason(String revokeReason) {
         this.revokeReason = revokeReason;
+    }
+
+    public Date getIssuedAt() {
+        return issuedAt;
+    }
+
+    public void setIssuedAt(Date issuedAt) {
+        this.issuedAt = issuedAt;
+    }
+
+    public Date getExpiringAt() {
+        return expiringAt;
+    }
+
+    public void setExpiringAt(Date expiringAt) {
+        this.expiringAt = expiringAt;
     }
 }

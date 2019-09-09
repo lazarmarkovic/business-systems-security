@@ -2,7 +2,9 @@ package com.businesssystemssecurity.proj.web.dto.user;
 
 import com.businesssystemssecurity.proj.domain.User;
 import com.businesssystemssecurity.proj.web.dto.authority.AuthorityDTO;
+import com.businesssystemssecurity.proj.web.dto.permission.PermissionDTO;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -12,12 +14,15 @@ public class UserDTO {
     private String firstName;
     private String lastName;
     private Set<AuthorityDTO> userAuthorities;
+    private Set<PermissionDTO> userPermissions;
+    private boolean suspended;
 
-    public UserDTO(Long id, String email, String firstName, String lastName) {
+    public UserDTO(Long id, String email, String firstName, String lastName, boolean suspended) {
         this.id = id;
         this.email = email;
         this.firstName = firstName;
         this.lastName = lastName;
+        this.suspended = suspended;
     }
 
     public UserDTO(User u) {
@@ -29,6 +34,14 @@ public class UserDTO {
         this.userAuthorities = u.getUserAuthorities().stream().map(ua ->
                 new AuthorityDTO(ua.getAuthority())
         ).collect(Collectors.toSet());
+
+        this.userPermissions = u.getUserPermissions()
+                .stream()
+                .map(ua -> ua.getPermission() != null ? new PermissionDTO(ua.getPermission()): null)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        this.suspended = u.isSuspended();
     }
 
     public Long getId() {
@@ -71,4 +84,19 @@ public class UserDTO {
         this.userAuthorities = userAuthorities;
     }
 
+    public Set<PermissionDTO> getUserPermissions() {
+        return userPermissions;
+    }
+
+    public void setUserPermissions(Set<PermissionDTO> userPermissions) {
+        this.userPermissions = userPermissions;
+    }
+
+    public boolean isSuspended() {
+        return suspended;
+    }
+
+    public void setSuspended(boolean suspended) {
+        this.suspended = suspended;
+    }
 }

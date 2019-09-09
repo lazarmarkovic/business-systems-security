@@ -3,9 +3,9 @@ package com.businesssystemssecurity.proj.web.dto.certificate;
 import com.businesssystemssecurity.proj.domain.helper.CertificateType;
 import com.businesssystemssecurity.proj.web.dto.subject.SubjectDTO;
 
-public class CertificateRequestDTO {
+public class CertificateGenerateRequestDTO {
 
-    private String issuerName = "";
+    private String issuerSerialNumber = "";
 
     private String commonName = "";
     private String organizationUnit = "";
@@ -15,7 +15,7 @@ public class CertificateRequestDTO {
     private CertificateType certificateType;
 
 
-    public CertificateRequestDTO() {
+    public CertificateGenerateRequestDTO() {
     }
 
     public SubjectDTO getSubjectDTO() {
@@ -27,12 +27,12 @@ public class CertificateRequestDTO {
         );
     }
 
-    public String getIssuerName() {
-        return issuerName;
+    public String getIssuerSerialNumber() {
+        return issuerSerialNumber;
     }
 
-    public void setIssuerName(String issuerName) {
-        this.issuerName = issuerName;
+    public void setIssuerSerialNumber(String issuerSerialNumber) {
+        this.issuerSerialNumber = issuerSerialNumber;
     }
 
     public String getCommonName() {

@@ -35,6 +35,14 @@ public class TreeItem {
         this.name = this.name.substring(this.name.indexOf("=") + 1);
         this.name = this.name.substring(0, this.name.indexOf(","));
 
+        if (certificate.getRevoked()) {
+            this.name += "  [ Status: REVOKED ]";
+        } else {
+            this.name += "  [ Status: GOOD ]";
+        }
+
+        this.name += "  [ Type: " + certificate.getType() + " ]";
+
         this.certificate = new CertificateDTO(certificate);;
         this.children = new ArrayList<>();
     }

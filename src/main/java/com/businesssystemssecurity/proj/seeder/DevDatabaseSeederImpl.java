@@ -1,6 +1,7 @@
 package com.businesssystemssecurity.proj.seeder;
 
 import com.businesssystemssecurity.proj.seeder.data.AuthorityTableSeed;
+import com.businesssystemssecurity.proj.seeder.data.PermissionTableSeed;
 import com.businesssystemssecurity.proj.seeder.data.UserTableSeed;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
@@ -16,18 +17,17 @@ public class DevDatabaseSeederImpl implements DatabaseSeeder {
     AuthorityTableSeed authorityTableSeed;
 
     @Autowired
+    PermissionTableSeed permissionTableSeed;
+
+    @Autowired
     UserTableSeed userTableSeed;
 
     @Override
-    //@EventListener
+    @EventListener
     public void seed(ContextRefreshedEvent event) {
-        authorityTableSeed.seed("admin");
-        authorityTableSeed.seed("regular");
+        this.authorityTableSeed.seed();
+        this.permissionTableSeed.seed();
 
-        userTableSeed.seed("admin1");
-        userTableSeed.seed("admin2");
-        userTableSeed.seed("regular1");
-        userTableSeed.seed("regular2");
-
+        userTableSeed.seed("admin");
     }
 }

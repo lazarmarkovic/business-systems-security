@@ -35,18 +35,25 @@ public class User {
     @NotEmpty(message = "*Last name field cannot be empty.")
     private String lastName;
 
+    @Column(name = "suspended", nullable = false)
+    private boolean suspended;
+
     @OneToMany(mappedBy = "user", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private Set<UserAuthority> userAuthorities = new HashSet<>();
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.EAGER)
+    private Set<UserPermission> userPermissions = new HashSet<>();
 
 
     public User() {}
 
-    public User(@NotEmpty(message = "*Email field cannot be empty.") String email, @Length(min = 5, message = "*Your password must have at least 5 characters") @NotEmpty(message = "*Password field cannot be empty.") String password, @NotEmpty(message = "*First name field cannot be empty.") String firstName, @NotEmpty(message = "*Last name field cannot be empty.") String lastName) {
+    public User(@NotEmpty(message = "*Email field cannot be empty.") String email, @Length(min = 5, message = "*Your password must have at least 5 characters") @NotEmpty(message = "*Password field cannot be empty.") String password, @NotEmpty(message = "*First name field cannot be empty.") String firstName, @NotEmpty(message = "*Last name field cannot be empty.") String lastName, boolean suspended) {
         this();
         this.email = email;
         this.password = password;
         this.firstName = firstName;
         this.lastName = lastName;
+        this.suspended = suspended;
     }
 
     public long getId() {
@@ -85,11 +92,27 @@ public class User {
         this.lastName = lastName;
     }
 
+    public boolean isSuspended() {
+        return suspended;
+    }
+
+    public void setSuspended(boolean suspended) {
+        this.suspended = suspended;
+    }
+
     public Set<UserAuthority> getUserAuthorities() {
         return userAuthorities;
     }
     public void setUserAuthorities(Set<UserAuthority> userAuthorities) {
         this.userAuthorities = userAuthorities;
+    }
+
+    public Set<UserPermission> getUserPermissions() {
+        return userPermissions;
+    }
+
+    public void setUserPermissions(Set<UserPermission> userPermissions) {
+        this.userPermissions = userPermissions;
     }
 
     @Override

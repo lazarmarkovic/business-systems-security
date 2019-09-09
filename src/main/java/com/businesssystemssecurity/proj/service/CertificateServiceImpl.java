@@ -75,9 +75,6 @@ public class CertificateServiceImpl implements CertificateService {
     @Value("${pki.ocsp.responder-server-url}")
     private String OCSPResponderServerURL;
 
-    @Value("${pki.aia-path}")
-    private String AIAPath;
-
     @Value("${pki.ca.keysize}")
     private int caKeySize;
 
@@ -105,6 +102,28 @@ public class CertificateServiceImpl implements CertificateService {
     @Override
     public ArrayList<Certificate> findAll() {
         return (ArrayList<Certificate>) certificateRepository.findAll();
+    }
+
+
+    @Override
+    public Certificate revokeCertificate(String serialNumber, String reason) {
+        Certificate certificate = this.findBySerialNumber(serialNumber);
+        certificate.setRevoked(true);
+        certificate.setRevokedAt(new Date());
+        certificate.setRevokeReason(reason);
+
+        this.certificateRepository.save(certificate);
+
+        return certificate;
+    }
+
+    @Override
+    public Certificate unrevokeCertificate(String serialNumber) {
+        Certificate certificate = this.findBySerialNumber(serialNumber);
+        certificate.setRevoked(false);
+        this.certificateRepository.save(certificate);
+
+        return certificate;
     }
 
     /*-------------------------------------------------------------------------------------------*/
@@ -149,6 +168,7 @@ public class CertificateServiceImpl implements CertificateService {
 
         Certificate c = new Certificate(
                 subject.getSerialNumber().toString(),
+                issuer.getSerialNumber().toString(),
                 type.toString(),
                 certificate.getIssuerDN().toString(),
                 certificate.getSubjectDN().toString(),
@@ -158,7 +178,9 @@ public class CertificateServiceImpl implements CertificateService {
                 filePathsOfDistributionFiles[2],
                 false,
                 null,
-                null
+                null,
+                subject.getStartDate(),
+                subject.getEndDate()
         );
 
 //        /* Test their method */
@@ -185,6 +207,7 @@ public class CertificateServiceImpl implements CertificateService {
         certificateRepository.save(c);
         return c;
     }
+
 
     private X500Name subjectDTOToX500Name(SubjectDTO subjectDTO) {
         X500NameBuilder nameBuilder = new X500NameBuilder();
@@ -237,7 +260,9 @@ public class CertificateServiceImpl implements CertificateService {
             v3CertGen.addExtension(X509Extensions.SubjectAlternativeName, false, subjectAltName);
 
             /* Add OCSP response server data */
-            //addAuthorityInformationAccess(issuerData.getX500name().toString(), v3CertGen);
+            GeneralName ocspName = new GeneralName(GeneralName.uniformResourceIdentifier, this.OCSPResponderServerURL + issuerData.getSerialNumber().toString());
+            AuthorityInformationAccess authorityInformationAccess = new AuthorityInformationAccess(X509ObjectIdentifiers.ocspAccessMethod, ocspName);
+            v3CertGen.addExtension(Extension.authorityInfoAccess, false, authorityInformationAccess);
 
             return new JcaX509CertificateConverter()
                     .setProvider(this.provider)
@@ -251,19 +276,6 @@ public class CertificateServiceImpl implements CertificateService {
             e.printStackTrace();
             throw new PKIMalfunctionException("Error while generating new certificate.");
         }
-    }
-
-    private void addAuthorityInformationAccess(String issuerName, X509v3CertificateBuilder v3CertGen) throws CertIOException {
-        AccessDescription caIssuers = new AccessDescription(
-                AccessDescription.id_ad_caIssuers,
-                new GeneralName(
-                        GeneralName.uniformResourceIdentifier,
-                        new DERIA5String(this.OCSPResponderServerURL + issuerName + this.AIAPath)
-                )
-        );
-        ASN1EncodableVector aia_ASN = new ASN1EncodableVector();
-        aia_ASN.add(caIssuers);
-        v3CertGen.addExtension(Extension.authorityInfoAccess, false, new DERSequence(aia_ASN));
     }
 
     private SubjectData generateSubjectData(PublicKey publicKey, X500Name subjectDN, boolean isCA) {

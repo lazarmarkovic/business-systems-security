@@ -1,4 +1,4 @@
-package com.businesssystemssecurity.proj.OCSP;
+package com.businesssystemssecurity.proj.OCSP.client;
 
 
 import net.maritimecloud.pki.PKIConstants;
@@ -28,6 +28,8 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import org.bouncycastle.x509.extension.X509ExtensionUtil;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
@@ -45,7 +47,15 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Optional;
 
+
 public class OCSPClient {
+
+    @Value("${pki.ocsp-responder.truststore.resource}")
+    private Resource signingCATrustStoreResource;
+    @Value("${pki.ocsp-responder.truststore.password}")
+    private char[] signingCATrustStorePassword;
+    @Value("${pki.ocsp-responder.truststore.type}")
+    private String signingCATrustStoreType;
 
     private static byte[] sentNonce;
     private final X509Certificate issuer;
@@ -183,6 +193,7 @@ public class OCSPClient {
                 IOException |
                 CertException |
                 CertificateException ex) {
+            ex.printStackTrace();
             throw new OCSPValidationException("Unable to perform validation through OCSP (" + certificate.getSubjectX500Principal().getName() + ")", ex);
         }
     }
